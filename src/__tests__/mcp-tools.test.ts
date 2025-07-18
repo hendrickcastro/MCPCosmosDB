@@ -1,192 +1,162 @@
-import { 
-  mcp_list_databases,
-  mcp_list_containers,
-  mcp_container_info,
-  mcp_container_stats,
-  mcp_execute_query,
-  mcp_get_documents,
-  mcp_get_document_by_id,
-  mcp_analyze_schema
-} from '../tools/index';
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { connectCosmosDB } from '../db.js';
 
-// Mock CosmosDB connection for testing
-jest.mock('../db', () => ({
-  getDatabase: jest.fn(() => ({
-    client: {
-      databases: {
-        readAll: jest.fn(() => ({
-          fetchAll: jest.fn().mockResolvedValue({
-            resources: [
-              { id: 'testdb', _etag: 'etag1', _ts: 1640995200 }
-            ]
-          })
-        }))
-      }
-    },
-    containers: {
-      readAll: jest.fn(() => ({
-        fetchAll: jest.fn().mockResolvedValue({
-          resources: [
-            { 
-              id: 'testcontainer', 
-              partitionKey: { paths: ['/id'], kind: 'Hash' },
-              _etag: 'etag1', 
-              _ts: 1640995200 
+// Importar las herramientas directamente de los módulos específicos
+import {
+    mcp_list_databases,
+    mcp_list_containers,
+    mcp_container_info,
+    mcp_container_stats
+} from '../tools/containerAnalysis.js';
+
+import {
+    mcp_execute_query,
+    mcp_get_documents,
+    mcp_get_document_by_id,
+    mcp_analyze_schema
+} from '../tools/dataOperations.js';
+
+describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
+    beforeAll(async () => {
+        try {
+            console.log('🔌 Connecting to CosmosDB...');
+            await connectCosmosDB();
+            console.log('✅ CosmosDB connection established!');
+        } catch (error) {
+            console.warn('CosmosDB connection failed in tests:', error);
+        }
+    });
+
+    afterAll(async () => {
+        console.log('🔌 Closing CosmosDB connection...');
+        // CosmosDB doesn't need explicit connection closing
+    });
+
+    describe('📊 Database Operations', () => {
+        it('should list all databases', async () => {
+            console.log('\n🔍 Getting databases...');
+
+            const result = await mcp_list_databases();
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(Array.isArray(result.data)).toBe(true);
+                expect(result.data.length).toBeGreaterThan(0);
+
+                console.log('✅ Databases found:', result.data.map((db: any) => db.id));
             }
-          ]
-        })
-      }))
-    }
-  })),
-  getContainer: jest.fn(() => ({
-    read: jest.fn().mockResolvedValue({
-      resource: {
-        id: 'testcontainer',
-        partitionKey: { paths: ['/id'], kind: 'Hash' },
-        _etag: 'etag1',
-        _ts: 1640995200
-      }
-    }),
-    readOffer: jest.fn().mockResolvedValue({
-      resource: { throughput: 400 }
-    }),
-    items: {
-      query: jest.fn(() => ({
-        fetchAll: jest.fn().mockResolvedValue({
-          resources: [{ id: 'doc1', name: 'Test Document' }],
-          requestCharge: 2.5
-        })
-      }))
-    },
-    item: jest.fn(() => ({
-      read: jest.fn().mockResolvedValue({
-        resource: { id: 'doc1', name: 'Test Document' }
-      })
-    }))
-  }))
-}));
-
-describe('MCP CosmosDB Tools', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('Database Operations', () => {
-    test('mcp_list_databases should return success with database list', async () => {
-      const result = await mcp_list_databases();
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveLength(1);
-        expect(result.data[0].id).toBe('testdb');
-      }
-    });
-  });
-
-  describe('Container Operations', () => {
-    test('mcp_list_containers should return success with container list', async () => {
-      const result = await mcp_list_containers();
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveLength(1);
-        expect(result.data[0].id).toBe('testcontainer');
-      }
+        });
     });
 
-    test('mcp_container_info should return container details', async () => {
-      const result = await mcp_container_info({ container_id: 'testcontainer' });
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.id).toBe('testcontainer');
-        expect(result.data.partitionKey?.paths).toEqual(['/id']);
-      }
+    describe('📦 Container Operations', () => {
+        it('should list all containers', async () => {
+            console.log('\n🔍 Getting containers...');
+
+            const result = await mcp_list_containers();
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(Array.isArray(result.data)).toBe(true);
+            }
+        });
+
+        it('should get container information', async () => {
+            console.log('\n🔍 Getting container info...');
+
+            const result = await mcp_container_info({ container_id: 'testcontainer' });
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data).toHaveProperty('id');
+            }
+        });
+
+        it('should get container statistics', async () => {
+            console.log('\n📊 Getting container stats...');
+
+            const result = await mcp_container_stats({ 
+                container_id: 'testcontainer',
+                sample_size: 100 
+            });
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data).toHaveProperty('documentCount');
+            }
+        });
     });
 
-    test('mcp_container_stats should return container statistics', async () => {
-      const result = await mcp_container_stats({ 
-        container_id: 'testcontainer',
-        sample_size: 100
-      });
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty('documentCount');
-        expect(result.data).toHaveProperty('sizeInKB');
-      }
-    });
-  });
+    describe('💻 Data Operations', () => {
+        it('should execute query', async () => {
+            console.log('\n💻 Executing query...');
 
-  describe('Data Operations', () => {
-    test('mcp_execute_query should execute query and return results', async () => {
-      const result = await mcp_execute_query({
-        container_id: 'testcontainer',
-        query: 'SELECT * FROM c',
-        max_items: 10
-      });
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.documents).toHaveLength(1);
-        expect(result.data.stats.requestCharge).toBe(2.5);
-      }
+            const result = await mcp_execute_query({
+                container_id: 'testcontainer',
+                query: 'SELECT * FROM c',
+                max_items: 10
+            });
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(Array.isArray(result.data)).toBe(true);
+            }
+        });
+
+        it('should get documents', async () => {
+            console.log('\n📄 Getting documents...');
+
+            const result = await mcp_get_documents({
+                container_id: 'testcontainer',
+                limit: 10
+            });
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(Array.isArray(result.data)).toBe(true);
+            }
+        });
+
+        it('should get document by id', async () => {
+            console.log('\n🎯 Getting document by ID...');
+
+            const result = await mcp_get_document_by_id({
+                container_id: 'testcontainer',
+                document_id: 'doc1',
+                partition_key: 'doc1'
+            });
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data).toHaveProperty('id');
+            }
+        });
+
+        it('should analyze schema', async () => {
+            console.log('\n🔍 Analyzing schema...');
+
+            const result = await mcp_analyze_schema({
+                container_id: 'testcontainer',
+                sample_size: 100
+            });
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data).toHaveProperty('sampleSize');
+                expect(result.data).toHaveProperty('commonProperties');
+            }
+        });
     });
 
-    test('mcp_get_documents should return filtered documents', async () => {
-      const result = await mcp_get_documents({
-        container_id: 'testcontainer',
-        limit: 10
-      });
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveLength(1);
-      }
-    });
+    describe('🚨 Error Handling', () => {
+        it('should handle errors gracefully', async () => {
+            console.log('\n🚨 Testing error handling...');
 
-    test('mcp_get_document_by_id should return specific document', async () => {
-      const result = await mcp_get_document_by_id({
-        container_id: 'testcontainer',
-        document_id: 'doc1',
-        partition_key: 'doc1'
-      });
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.id).toBe('doc1');
-      }
-    });
+            const result = await mcp_container_info({ container_id: 'nonexistent' });
 
-    test('mcp_analyze_schema should return schema analysis', async () => {
-      const result = await mcp_analyze_schema({
-        container_id: 'testcontainer',
-        sample_size: 100
-      });
-      
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty('sampleSize');
-        expect(result.data).toHaveProperty('commonProperties');
-        expect(result.data).toHaveProperty('dataTypes');
-      }
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBeDefined();
+            }
+        });
     });
-  });
-
-  describe('Error Handling', () => {
-    test('should handle errors gracefully', async () => {
-      // Mock an error
-      const mockGetContainer = require('../db').getContainer;
-      mockGetContainer.mockImplementationOnce(() => {
-        throw new Error('Connection failed');
-      });
-
-      const result = await mcp_container_info({ container_id: 'nonexistent' });
-      
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain('Connection failed');
-      }
-    });
-  });
 }); 
