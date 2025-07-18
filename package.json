@@ -1,0 +1,85 @@
+{
+  "name": "mcpcosmosdb",
+  "version": "1.0.0",
+  "description": "MCP CosmosDB - Azure CosmosDB MCP Server for database analysis and operations",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "mcp-cosmosdb": "./dist/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/mcp-cosmosdb.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "start": "ts-node src/server.ts",
+    "build": "npm run clean && tsc",
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && jest",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cosmosdb",
+    "azure-cosmosdb",
+    "nosql",
+    "document-database",
+    "database",
+    "database-analysis",
+    "database-tools",
+    "azure",
+    "database-management",
+    "database-administration",
+    "analysis",
+    "typescript",
+    "nodejs",
+    "cursor",
+    "claude",
+    "claude-desktop",
+    "cursor-ide",
+    "anthropic",
+    "ai-tools",
+    "llm-integration",
+    "document-analysis",
+    "container-analysis",
+    "query-execution",
+    "database-search",
+    "schema-analysis",
+    "data-exploration",
+    "database-connector",
+    "cli-tool",
+    "npm-package"
+  ],
+  "author": "hendrickcastro",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.1",
+    "@azure/cosmos": "^4.2.0",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.3",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "jest": "^30.0.2",
+    "nodemon": "^3.1.10",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
