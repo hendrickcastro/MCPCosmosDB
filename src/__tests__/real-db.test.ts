@@ -4,16 +4,23 @@
  * NO debe ser incluido en .gitignore para pruebas específicas
  */
 
-import { 
-  mcp_list_databases,
-  mcp_list_containers,
-  mcp_container_info,
-  mcp_container_stats,
-  mcp_execute_query,
-  mcp_get_documents,
-  mcp_analyze_schema
-} from '../tools/index';
-import { connectCosmosDB } from '../db';
+import { jest } from '@jest/globals';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Test configuration
+const TEST_CONFIG = {
+  OCONNSTRING: process.env.OCONNSTRING,
+  COSMOS_DATABASE_ID: process.env.COSMOS_DATABASE_ID || 'import'
+};
+
+import {
+  mcp_list_databases, mcp_list_containers, mcp_container_info, mcp_container_stats,
+  mcp_execute_query, mcp_get_documents, mcp_get_document_by_id, mcp_analyze_schema
+} from '../tools/index.js';
+import { connectCosmosDB } from '../db.js';
 
 describe('Real CosmosDB Tests - dbsqlcosmosregistration', () => {
   beforeAll(async () => {
@@ -27,12 +34,12 @@ describe('Real CosmosDB Tests - dbsqlcosmosregistration', () => {
       
       expect(result.success).toBe(true);
       if (result.success) {
-        console.log('✅ Databases found:', result.data.map(db => db.id));
+        console.log('✅ Databases found:', result.data.map((db: any) => db.id));
         expect(result.data).toBeInstanceOf(Array);
         expect(result.data.length).toBeGreaterThan(0);
         
         // Verificar que existe la base de datos "import"
-        const importDb = result.data.find(db => db.id === 'import');
+        const importDb = result.data.find((db: any) => db.id === 'import');
         expect(importDb).toBeDefined();
       }
     });
@@ -42,11 +49,11 @@ describe('Real CosmosDB Tests - dbsqlcosmosregistration', () => {
       
       expect(result.success).toBe(true);
       if (result.success) {
-        console.log('✅ Containers found:', result.data.map(c => c.id));
+        console.log('✅ Containers found:', result.data.map((c: any) => c.id));
         expect(result.data).toBeInstanceOf(Array);
         
         // Log información de cada container
-        result.data.forEach(container => {
+        result.data.forEach((container: any) => {
           console.log(`Container: ${container.id}`, {
             partitionKey: container.partitionKey,
             indexingPolicy: container.indexingPolicy ? 'Defined' : 'Not defined'
@@ -180,7 +187,7 @@ describe('Real CosmosDB Tests - dbsqlcosmosregistration', () => {
           
           // Mostrar las 5 propiedades más comunes
           const topProperties = schemaResult.data.commonProperties.slice(0, 5);
-          console.log('🏷️ Top 5 properties:', topProperties.map(p => ({
+          console.log('🏷️ Top 5 properties:', topProperties.map((p: any) => ({
             name: p.name,
             type: p.type,
             frequency: `${(p.frequency * 100).toFixed(1)}%`

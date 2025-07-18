@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/mcp-cosmosdb.git"
+    "url": "https://github.com/hendrickcastro/MCPCosmosDB.git"
   },
   "publishConfig": {
     "access": "public"
