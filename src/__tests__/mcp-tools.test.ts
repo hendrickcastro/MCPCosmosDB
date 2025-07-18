@@ -7,10 +7,10 @@ import {
   mcp_get_documents,
   mcp_get_document_by_id,
   mcp_analyze_schema
-} from '../tools/index.js';
+} from '../tools/index';
 
 // Mock CosmosDB connection for testing
-jest.mock('../db.js', () => ({
+jest.mock('../db', () => ({
   getDatabase: jest.fn(() => ({
     client: {
       databases: {
@@ -176,7 +176,7 @@ describe('MCP CosmosDB Tools', () => {
   describe('Error Handling', () => {
     test('should handle errors gracefully', async () => {
       // Mock an error
-      const mockGetContainer = require('../db.js').getContainer;
+      const mockGetContainer = require('../db').getContainer;
       mockGetContainer.mockImplementationOnce(() => {
         throw new Error('Connection failed');
       });
