@@ -91,6 +91,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case 'mcp_list_databases':
                 result = await toolHandlers.mcp_list_databases();
                 break;
+            case 'mcp_list_containers':
+                result = await toolHandlers.mcp_list_containers();
+                break;
+            case 'mcp_container_info':
+                result = await toolHandlers.mcp_container_info(input as any);
+                break;
+            case 'mcp_container_stats':
+                result = await toolHandlers.mcp_container_stats(input as any);
+                break;
+            case 'mcp_execute_query':
+                result = await toolHandlers.mcp_execute_query(input as any);
+                break;
+            case 'mcp_get_documents':
+                result = await toolHandlers.mcp_get_documents(input as any);
+                break;
+            case 'mcp_get_document_by_id':
+                result = await toolHandlers.mcp_get_document_by_id(input as any);
+                break;
+            case 'mcp_analyze_schema':
+                result = await toolHandlers.mcp_analyze_schema(input as any);
+                break;
             default:
                 result = await handler(input);
         }
