@@ -48,105 +48,80 @@ function prepareDataForResponse(data: any): string {
     }
 }
 
-// Create the server
-const server = new Server(
-    {
-        name: "mcp-cosmosdb",
-        version: "1.0.0",
-    },
-    {
-        capabilities: {
-            tools: {}
-        }
+// Create the server with name and version
+// @ts-ignore - Bypass TypeScript errors from the SDK's types
+const server = new Server({
+    name: "cosmosdb-proxy-server",
+    version: "1.0.0"
+}, {
+    capabilities: {
+        tools: {}
     }
-);
-
-// List available tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    logToFile('[DEBUG] Listing tools');
-    return {
-        tools: MCP_COSMOSDB_TOOLS
-    };
 });
 
-// Handle tool calls
+// Register the ListTools handler
+// @ts-ignore - Bypass TypeScript errors from the SDK's types
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: MCP_COSMOSDB_TOOLS
+}));
+
+// Register the CallTool handler
+// @ts-ignore - Bypass TypeScript errors from the SDK's types
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-    logToFile(`[DEBUG] Tool called: ${name} with args:`, args);
+    const toolName = request.params.name;
+    const input = request.params.arguments;
+    const handler = (toolHandlers as { [key: string]: (args: any) => Promise<any> })[toolName];
+
+    if (!handler) {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `Error: Tool '${toolName}' not found.`
+                }
+            ],
+            isError: true
+        };
+    }
 
     try {
+        await connectCosmosDB();
         let result;
-
-        // Route to appropriate tool handler
-        switch (name) {
-            case "mcp_list_databases":
+        switch (toolName) {
+            case 'mcp_list_databases':
                 result = await toolHandlers.mcp_list_databases();
                 break;
-
-            case "mcp_list_containers":
+            case 'mcp_list_containers':
                 result = await toolHandlers.mcp_list_containers();
                 break;
-
-            case "mcp_container_info":
-                result = await toolHandlers.mcp_container_info(args as { container_id: string });
+            case 'mcp_container_info':
+                result = await toolHandlers.mcp_container_info(input as any);
                 break;
-
-            case "mcp_container_stats":
-                result = await toolHandlers.mcp_container_stats(args as { container_id: string; sample_size?: number });
+            case 'mcp_container_stats':
+                result = await toolHandlers.mcp_container_stats(input as any);
                 break;
-
-            case "mcp_execute_query":
-                result = await toolHandlers.mcp_execute_query(args as { 
-                    container_id: string; 
-                    query: string; 
-                    parameters?: Record<string, any>;
-                    max_items?: number;
-                    enable_cross_partition?: boolean;
-                });
+            case 'mcp_execute_query':
+                result = await toolHandlers.mcp_execute_query(input as any);
                 break;
-
-            case "mcp_get_documents":
-                result = await toolHandlers.mcp_get_documents(args as { 
-                    container_id: string; 
-                    limit?: number;
-                    partition_key?: string;
-                    filter_conditions?: Record<string, any>;
-                });
+            case 'mcp_get_documents':
+                result = await toolHandlers.mcp_get_documents(input as any);
                 break;
-
-            case "mcp_get_document_by_id":
-                result = await toolHandlers.mcp_get_document_by_id(args as { 
-                    container_id: string; 
-                    document_id: string; 
-                    partition_key: string; 
-                });
+            case 'mcp_get_document_by_id':
+                result = await toolHandlers.mcp_get_document_by_id(input as any);
                 break;
-
-            case "mcp_analyze_schema":
-                result = await toolHandlers.mcp_analyze_schema(args as { 
-                    container_id: string; 
-                    sample_size?: number; 
-                });
+            case 'mcp_analyze_schema':
+                result = await toolHandlers.mcp_analyze_schema(input as any);
                 break;
-
             default:
-                throw new Error(`Unknown tool: ${name}`);
+                result = await handler(input);
         }
 
-        logToFile(`[DEBUG] Tool ${name} result:`, result);
+        logToFile(`[DEBUG] Tool: ${toolName}, Success: ${result.success}`);
 
-        // Format the response
-        if (result.success) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: prepareDataForResponse(result.data)
-                    }
-                ]
-            };
-        } else {
-            return {
+        // Check if the handler result indicates an error
+        if (!result.success) {
+            logToFile(`[DEBUG] Handler error: ${result.error}`);
+            const errorResponse = {
                 content: [
                     {
                         type: "text",
@@ -155,57 +130,62 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 ],
                 isError: true
             };
+            logToFile(`[DEBUG] About to return error response for tool: ${toolName}`);
+            return errorResponse;
         }
 
-    } catch (error: any) {
-        logToFile(`[ERROR] Tool execution failed for ${name}:`, error.message);
-        return {
+        // Safely prepare the data for response
+        const serializedData = prepareDataForResponse(result.data);
+        logToFile(`[DEBUG] Returning data length: ${serializedData.length}`);
+
+        // Return successful result data only
+        const response = {
             content: [
                 {
                     type: "text",
-                    text: `Error executing tool ${name}: ${error.message}`
+                    text: serializedData
+                }
+            ]
+        };
+
+        logToFile(`[DEBUG] About to return successful response for tool: ${toolName}`);
+
+        // Log after response is sent
+        setImmediate(() => {
+            logToFile(`[DEBUG] Response sent successfully for tool: ${toolName}`);
+        });
+
+        return response;
+    }
+    catch (error: any) {
+        logToFile(`[DEBUG] Catch block error: ${error.message}`);
+        logToFile(`[DEBUG] Error stack: ${error.stack}`);
+        const catchErrorResponse = {
+            content: [
+                {
+                    type: "text",
+                    text: `Error executing tool '${toolName}': ${error.message}`
                 }
             ],
             isError: true
         };
+        logToFile(`[DEBUG] About to return catch error response for tool: ${toolName}`);
+        return catchErrorResponse;
     }
+    // Don't close the connection after each call to allow multiple tool calls in the same session
+    // The connection will be managed by the MCP's own lifecycle
 });
 
-// Initialize and start the server
-async function main() {
-    try {
-        logToFile('[INFO] Starting CosmosDB MCP Server...');
-        
-        // Connect to CosmosDB
-        await connectCosmosDB();
-        logToFile('[INFO] Connected to CosmosDB successfully');
-
-        // Create transport and connect
-        const transport = new StdioServerTransport();
-        await server.connect(transport);
-        
-        logToFile('[INFO] MCP CosmosDB Server started successfully');
-    } catch (error: any) {
-        logToFile('[ERROR] Failed to start server:', error.message);
-        console.error('Failed to start MCP CosmosDB Server:', error);
-        process.exit(1);
-    }
+// Start the server using stdio transport
+// This is exactly how the working example does it
+async function runServer() {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    logToFile("=== CosmosDB MCP Proxy STARTED ===");
+    console.error("CosmosDB MCP Proxy running on stdio");
 }
 
-// Handle process termination
-process.on('SIGINT', () => {
-    logToFile('[INFO] Received SIGINT, shutting down gracefully...');
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    logToFile('[INFO] Received SIGTERM, shutting down gracefully...');
-    process.exit(0);
-});
-
-// Run the server
-main().catch((error) => {
-    logToFile('[ERROR] Unhandled error in main:', error.message);
-    console.error('Unhandled error:', error);
+runServer().catch((error) => {
+    console.error("Fatal error running server:", error);
     process.exit(1);
 }); 

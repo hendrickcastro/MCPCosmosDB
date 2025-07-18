@@ -404,5 +404,13 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Environment files and sensitive configurations
 .env
+.env.local
+.env.production
+.env.test
+cursor_mcp_config.real.json
+claude_desktop_config.real.json
+
 dist
