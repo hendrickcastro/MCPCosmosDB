@@ -65,8 +65,8 @@
   "author": "hendrickcastro",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.13.1",
     "@azure/cosmos": "^4.2.0",
+    "@modelcontextprotocol/sdk": "1.13.1",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
@@ -84,4 +84,4 @@
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}
