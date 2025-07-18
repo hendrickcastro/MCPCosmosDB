@@ -1,0 +1,15 @@
+{
+  "mcp-cosmosdb": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "hendrickcastro/MCPCosmosDB"
+    ],
+    "description": "Servidor MCP para interactuar con Azure CosmosDB.",
+    "disabled": false,
+    "env": {
+      "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
+      "COSMOS_DATABASE_ID": "your-database-name"
+    }
+  }
+} 
