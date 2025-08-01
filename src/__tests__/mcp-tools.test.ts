@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { connectCosmosDB } from '../db.js';
 
-// Importar las herramientas directamente de los módulos específicos
+// Importar las herramientas directamente de los mdulos especficos
 import {
     mcp_list_databases,
     mcp_list_containers,
@@ -19,22 +19,22 @@ import {
 describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
     beforeAll(async () => {
         try {
-            console.log('🔌 Connecting to CosmosDB...');
+            console.log(' Connecting to CosmosDB...');
             await connectCosmosDB();
-            console.log('✅ CosmosDB connection established!');
+            console.log(' CosmosDB connection established!');
         } catch (error) {
             console.warn('CosmosDB connection failed in tests:', error);
         }
     });
 
     afterAll(async () => {
-        console.log('🔌 Closing CosmosDB connection...');
+        console.log(' Closing CosmosDB connection...');
         // CosmosDB doesn't need explicit connection closing
     });
 
-    describe('📊 Database Operations', () => {
+    describe(' Database Operations', () => {
         it('should list all databases', async () => {
-            console.log('\n🔍 Getting databases...');
+            console.log('\n Getting databases...');
 
             const result = await mcp_list_databases();
 
@@ -43,14 +43,14 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
                 expect(Array.isArray(result.data)).toBe(true);
                 expect(result.data.length).toBeGreaterThan(0);
 
-                console.log('✅ Databases found:', result.data.map((db: any) => db.id));
+                console.log(' Databases found:', result.data.map((db: any) => db.id));
             }
         });
     });
 
-    describe('📦 Container Operations', () => {
+    describe(' Container Operations', () => {
         it('should list all containers', async () => {
-            console.log('\n🔍 Getting containers...');
+            console.log('\n Getting containers...');
 
             const result = await mcp_list_containers();
 
@@ -61,7 +61,7 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
 
         it('should get container information', async () => {
-            console.log('\n🔍 Getting container info...');
+            console.log('\n Getting container info...');
 
             const result = await mcp_container_info({ container_id: 'testcontainer' });
 
@@ -72,7 +72,7 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
 
         it('should get container statistics', async () => {
-            console.log('\n📊 Getting container stats...');
+            console.log('\n Getting container stats...');
 
             const result = await mcp_container_stats({ 
                 container_id: 'testcontainer',
@@ -86,9 +86,9 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
     });
 
-    describe('💻 Data Operations', () => {
+    describe(' Data Operations', () => {
         it('should execute query', async () => {
-            console.log('\n💻 Executing query...');
+            console.log('\n Executing query...');
 
             const result = await mcp_execute_query({
                 container_id: 'testcontainer',
@@ -103,7 +103,7 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
 
         it('should get documents', async () => {
-            console.log('\n📄 Getting documents...');
+            console.log('\n Getting documents...');
 
             const result = await mcp_get_documents({
                 container_id: 'testcontainer',
@@ -117,7 +117,7 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
 
         it('should get document by id', async () => {
-            console.log('\n🎯 Getting document by ID...');
+            console.log('\n Getting document by ID...');
 
             const result = await mcp_get_document_by_id({
                 container_id: 'testcontainer',
@@ -132,7 +132,7 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
 
         it('should analyze schema', async () => {
-            console.log('\n🔍 Analyzing schema...');
+            console.log('\n Analyzing schema...');
 
             const result = await mcp_analyze_schema({
                 container_id: 'testcontainer',
@@ -147,9 +147,9 @@ describe('MCP CosmosDB Tools - Comprehensive Analysis', () => {
         });
     });
 
-    describe('🚨 Error Handling', () => {
+    describe(' Error Handling', () => {
         it('should handle errors gracefully', async () => {
-            console.log('\n🚨 Testing error handling...');
+            console.log('\n Testing error handling...');
 
             const result = await mcp_container_info({ container_id: 'nonexistent' });
 

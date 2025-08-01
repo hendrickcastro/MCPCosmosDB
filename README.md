@@ -3,10 +3,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
+[![GitHub stars](https://img.shields.io/github/stars/hendrickcastro/MCPCosmosDB.svg)](https://github.com/hendrickcastro/MCPCosmosDB/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/hendrickcastro/MCPCosmosDB.svg)](https://github.com/hendrickcastro/MCPCosmosDB/issues)
+[![GitHub forks](https://img.shields.io/github/forks/hendrickcastro/MCPCosmosDB.svg)](https://github.com/hendrickcastro/MCPCosmosDB/network)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/hendrickcastro/MCPCosmosDB/ci.yml?branch=main)](https://github.com/hendrickcastro/MCPCosmosDB/actions)
+[![Coverage Status](https://img.shields.io/codecov/c/github/hendrickcastro/MCPCosmosDB)](https://codecov.io/gh/hendrickcastro/MCPCosmosDB)
 [![Azure CosmosDB](https://img.shields.io/badge/Azure-CosmosDB-blue)](https://azure.microsoft.com/services/cosmos-db/)
+[![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-purple)](https://github.com/modelcontextprotocol/sdk)
 [![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-purple)](https://github.com/modelcontextprotocol/sdk)
 [![Claude Desktop](https://img.shields.io/badge/Claude-Desktop-orange)](https://claude.ai/desktop)
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-green)](https://cursor.sh/)
+[![Trae AI](https://img.shields.io/badge/Trae%20AI-IDE-blue)](https://trae.ai/)
 
 A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** database operations. This server provides 8 powerful tools for document database analysis, container discovery, and data querying through the MCP protocol.
 
@@ -15,14 +22,22 @@ A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** d
 ### Prerequisites
 - Node.js 18+ and npm
 - Azure CosmosDB database with connection string
-- MCP-compatible client (like Claude Desktop, Cursor IDE, or any MCP client)
+- MCP-compatible client (Claude Desktop, Cursor IDE, etc.)
 
-### Installation & Configuration
+## ⚙️ Configuration
 
-#### Option 1: Using npx from GitHub (Recommended)
-No installation needed! Just configure your MCP client to run directly from the GitHub repository:
+### Required Environment Variables
 
-**For Claude Desktop (`claude_desktop_config.json`):**
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `OCONNSTRING` | CosmosDB connection string from Azure Portal | `AccountEndpoint=https://...;AccountKey=...;` |
+| `COSMOS_DATABASE_ID` | Database ID to connect to | `MyDatabase` |
+
+### Installation Options
+
+#### Option 1: NPX (Recommended)
+No installation needed! Configure your MCP client:
+
 ```json
 {
   "mcpServers": {
@@ -38,46 +53,14 @@ No installation needed! Just configure your MCP client to run directly from the 
 }
 ```
 
-**For Cursor IDE (`~/.cursor/mcp.json`):**
-```json
-{
-  "mcp-cosmosdb": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "hendrickcastro/MCPCosmosDB"
-    ],
-    "description": "Servidor MCP para interactuar con Azure CosmosDB.",
-    "disabled": false,
-    "env": {
-      "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
-      "COSMOS_DATABASE_ID": "your-database-name"
-    }
-  }
-}
-```
-
-#### Option 2: Local Development Installation
-
-1. **Clone and setup:**
+#### Option 2: Local Development
 ```bash
 git clone <your-repo-url>
 cd MCPCosmosDB
-npm install
-npm run build
+npm install && npm run build
 ```
 
-2. **Configure CosmosDB connection:**
-Create a `.env` file with your CosmosDB credentials:
-```bash
-# CosmosDB Connection String from Azure Portal
-OCONNSTRING=AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;
-
-# Database ID to connect to
-COSMOS_DATABASE_ID=your-database-name
-```
-
-3. **Configure MCP client with local path:**
+Then configure with local path:
 ```json
 {
   "mcpServers": {
@@ -85,7 +68,7 @@ COSMOS_DATABASE_ID=your-database-name
       "command": "node",
       "args": ["path/to/MCPCosmosDB/dist/server.js"],
       "env": {
-        "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
+        "OCONNSTRING": "your-connection-string",
         "COSMOS_DATABASE_ID": "your-database-name"
       }
     }
@@ -174,15 +157,6 @@ const schema = await mcp_analyze_schema({
 });
 ```
 
-## 🔧 Environment Variables & Configuration
-
-### Required Environment Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `OCONNSTRING` | CosmosDB connection string from Azure Portal | `AccountEndpoint=https://...;AccountKey=...;` |
-| `COSMOS_DATABASE_ID` | Database ID to connect to | `MyDatabase` |
-
 ### Optional Configuration
 
 | Variable | Description | Default |
@@ -192,150 +166,107 @@ const schema = await mcp_analyze_schema({
 | `COSMOS_MAX_RETRY_WAIT_TIME` | Maximum retry wait time (ms) | `30000` |
 | `COSMOS_ENABLE_CROSS_PARTITION_QUERY` | Enable cross-partition queries | `true` |
 
-## 🔧 Configuration Examples
+### Configuration Examples
 
-### 1. 🌐 Azure CosmosDB (Production)
+**Production Environment:**
 ```json
 {
-  "mcpServers": {
-    "mcp-cosmosdb": {
-      "command": "npx",
-      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
-      "env": {
-        "OCONNSTRING": "AccountEndpoint=https://mycompany-prod.documents.azure.com:443/;AccountKey=your-production-key;",
-        "COSMOS_DATABASE_ID": "ProductionDB"
-      }
-    }
+  "env": {
+    "OCONNSTRING": "AccountEndpoint=https://mycompany-prod.documents.azure.com:443/;AccountKey=your-production-key;",
+    "COSMOS_DATABASE_ID": "ProductionDB"
   }
 }
 ```
 
-### 2. 🏠 CosmosDB Emulator (Local Development)
+**CosmosDB Emulator (Local):**
 ```json
 {
-  "mcpServers": {
-    "mcp-cosmosdb": {
-      "command": "npx",
-      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
-      "env": {
-        "OCONNSTRING": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;",
-        "COSMOS_DATABASE_ID": "TestDB"
-      }
-    }
+  "env": {
+    "OCONNSTRING": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;",
+    "COSMOS_DATABASE_ID": "TestDB"
   }
 }
 ```
 
-### 3. ⚙️ Advanced Configuration
+**Advanced Configuration:**
 ```json
 {
-  "mcpServers": {
-    "mcp-cosmosdb": {
-      "command": "npx",
-      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
-      "env": {
-        "OCONNSTRING": "AccountEndpoint=https://mycompany.documents.azure.com:443/;AccountKey=your-key;",
-        "COSMOS_DATABASE_ID": "MyDatabase",
-        "COSMOS_MAX_RETRY_ATTEMPTS": "15",
-        "COSMOS_MAX_RETRY_WAIT_TIME": "60000",
-        "COSMOS_ENABLE_CROSS_PARTITION_QUERY": "true"
-      }
-    }
+  "env": {
+    "OCONNSTRING": "AccountEndpoint=https://mycompany.documents.azure.com:443/;AccountKey=your-key;",
+    "COSMOS_DATABASE_ID": "MyDatabase",
+    "COSMOS_MAX_RETRY_ATTEMPTS": "15",
+    "COSMOS_MAX_RETRY_WAIT_TIME": "60000"
   }
 }
 ```
 
-## 🚨 Troubleshooting Common Issues
+## 🚨 Troubleshooting
 
-### Connection Issues
-- **"Invalid connection string"**: Verify your OCONNSTRING format and ensure it contains both AccountEndpoint and AccountKey
-- **"Database not found"**: Check that COSMOS_DATABASE_ID matches an existing database
-- **"Request timeout"**: Increase COSMOS_MAX_RETRY_WAIT_TIME or check network connectivity
+**Connection Issues:**
+- **Invalid connection string**: Verify OCONNSTRING format includes AccountEndpoint and AccountKey
+- **Database not found**: Check COSMOS_DATABASE_ID matches existing database
+- **Request timeout**: Increase COSMOS_MAX_RETRY_WAIT_TIME or check network
 
-### Query Issues
-- **"Cross partition query required"**: Set `enable_cross_partition: true` in query parameters
-- **"Query timeout"**: Reduce sample sizes or add more specific filters
-- **"Partition key required"**: Specify partition_key parameter for single-partition operations
+**Query Issues:**
+- **Cross partition query required**: Set `enable_cross_partition: true` in query parameters
+- **Query timeout**: Reduce sample sizes or add specific filters
+- **Partition key required**: Specify partition_key for single-partition operations
 
-### CosmosDB Emulator Setup
-1. Download and install Azure CosmosDB Emulator
-2. Start the emulator and ensure it's running on default port 8081
-3. Use the default emulator connection string in your configuration
-4. Create a database and containers for testing
+**CosmosDB Emulator:**
+1. Install Azure CosmosDB Emulator
+2. Start emulator on port 8081
+3. Use default emulator connection string
+4. Create database and containers for testing
 
-## 🧪 Testing
+## 🧪 Development
 
-Run the test suite:
 ```bash
-npm test
-```
-
-Build the project:
-```bash
-npm run build
-```
-
-Start in development mode:
-```bash
-npm start
+npm test          # Run tests
+npm run build     # Build project
+npm start         # Development mode
 ```
 
 ## 🏗️ Architecture
 
-### Project Structure
+**Project Structure:**
 ```
-MCPCosmosDB/
-├── src/
-│   ├── tools/                  # Tool implementations
-│   │   ├── containerAnalysis.ts    # Container operations
-│   │   ├── dataOperations.ts       # Data queries and operations
-│   │   ├── types.ts                # Type definitions
-│   │   └── index.ts                # Tool exports
-│   ├── db.ts                   # CosmosDB connection management
-│   ├── server.ts               # MCP server setup and handlers
-│   ├── tools.ts                # Tool definitions and schemas
-│   ├── mcp-server.ts           # Tool re-exports
-│   └── utils.ts                # Utility functions
-├── dist/                       # Compiled JavaScript output
-├── package.json               # Dependencies and scripts
-└── README.md                  # This file
+src/
+├── tools/                    # Tool implementations
+│   ├── containerAnalysis.ts  # Container operations
+│   ├── dataOperations.ts     # Data queries
+│   └── types.ts              # Type definitions
+├── db.ts                     # CosmosDB connection
+├── server.ts                 # MCP server setup
+└── tools.ts                  # Tool definitions
 ```
 
-### Key Features
-- ⚡ **Connection Management**: Efficient CosmosDB client management with retry logic
-- 🛡️ **Error Handling**: Comprehensive error handling and validation
-- 📊 **Performance Metrics**: Query performance tracking with request charges
-- 🔧 **Flexible Configuration**: Environment-based configuration
-- 📋 **Schema Analysis**: Intelligent document schema discovery
+**Key Features:**
+- ⚡ Connection management with retry logic
+- 🛡️ Comprehensive error handling
+- 📊 Performance metrics and request charges
+- 🔧 Environment-based configuration
+- 📋 Intelligent schema analysis
 
 ## 📝 Important Notes
 
-- **Container IDs**: Use exact container names as they appear in CosmosDB
-- **Partition Keys**: Required for single-document operations and optimal performance
-- **Cross-Partition Queries**: Can be expensive; use filters when possible
-- **Request Charges**: Monitor RU consumption through query statistics
-- **Connection Management**: Automatic connection pooling and retry logic
-- **Security**: Connection strings contain sensitive keys; store securely
+- **Container IDs**: Use exact names as in CosmosDB
+- **Partition Keys**: Required for optimal performance
+- **Cross-Partition Queries**: Can be expensive; use filters
+- **Request Charges**: Monitor RU consumption
+- **Security**: Store connection strings securely
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes and add tests
-4. Ensure all tests pass (`npm test`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/name`)
+3. Make changes and add tests
+4. Ensure tests pass (`npm test`)
+5. Commit changes (`git commit -m 'Add feature'`)
+6. Push and open Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with the [Model Context Protocol SDK](https://github.com/modelcontextprotocol/sdk)
-- Uses [@azure/cosmos](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/cosmosdb/cosmos) for CosmosDB connectivity
-- Inspired by [MCPQL](https://github.com/hendrickcastro/MCPQL) for SQL Server
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🏷️ Tags & Keywords
 
@@ -349,6 +280,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Use Cases:** `database-development` `data-science` `business-intelligence` `database-migration` `schema-documentation` `performance-analysis` `data-governance` `database-monitoring` `troubleshooting` `automation`
 
----
+## 🙏 Acknowledgments
 
-**🎯 MCP CosmosDB provides comprehensive Azure CosmosDB database analysis and manipulation capabilities through the Model Context Protocol. Perfect for developers, data analysts, and anyone working with CosmosDB databases!** 🚀
+- [Model Context Protocol SDK](https://github.com/modelcontextprotocol/sdk)
+- [@azure/cosmos](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/cosmosdb/cosmos)
+- Inspired by [MCPQL](https://github.com/hendrickcastro/MCPQL)
+
+**🎯 MCP CosmosDB provides comprehensive Azure CosmosDB database analysis through the Model Context Protocol. Perfect for developers and data analysts working with CosmosDB!** 🚀

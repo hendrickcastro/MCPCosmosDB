@@ -1,4 +1,6 @@
 // Container and Database Analysis Tools
+export * from './types.js';
+
 export {
   mcp_list_databases,
   mcp_list_containers,
@@ -13,6 +15,3 @@ export {
   mcp_get_document_by_id,
   mcp_analyze_schema
 } from './dataOperations.js';
-
-// Export types
-export * from './types.js'; 

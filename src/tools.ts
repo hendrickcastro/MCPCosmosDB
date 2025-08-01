@@ -175,4 +175,4 @@ export const MCP_COSMOSDB_TOOLS = [
       required: ["container_id"]
     }
   }
-]; 
+];
