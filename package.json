@@ -16,6 +16,7 @@
   },
   "files": [
     "dist/**/*",
+    "node_modules/@modelcontextprotocol/**/*",
     "README.md",
     "LICENSE"
   ],
@@ -68,6 +69,9 @@
     "@azure/cosmos": "^4.2.0",
     "@modelcontextprotocol/sdk": "^1.13.1",
     "dotenv": "^16.5.0"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
