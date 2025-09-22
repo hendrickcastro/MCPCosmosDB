@@ -1,6 +1,6 @@
 {
   "name": "mcpcosmosdb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP CosmosDB - Azure CosmosDB MCP Server for database analysis and operations",
   "type": "module",
   "main": "dist/server.js",
@@ -28,7 +28,7 @@
     "test:mock": "npm run build && jest src/__tests__/mcp-tools.test.ts",
     "test:real": "npm run build && jest src/__tests__/real-db.test.ts --verbose",
     "prepare": "npm run build",
-    "postinstall": "npm install --no-save @modelcontextprotocol/sdk@^1.13.1 || true"
+    "postinstall": "npm install --no-save @modelcontextprotocol/sdk@^1.13.1 @azure/cosmos@^4.4.1 || true"
   },
   "keywords": [
     "mcp",
@@ -66,12 +66,13 @@
   "author": "hendrickcastro",
   "license": "MIT",
   "dependencies": {
-    "@azure/cosmos": "^4.2.0",
+    "@azure/cosmos": "^4.4.1",
     "@modelcontextprotocol/sdk": "^1.13.1",
     "dotenv": "^16.5.0"
   },
   "bundledDependencies": [
-    "@modelcontextprotocol/sdk"
+    "@modelcontextprotocol/sdk",
+    "@azure/cosmos"
   ],
   "devDependencies": {
     "@types/jest": "^30.0.0",
