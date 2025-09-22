@@ -16,7 +16,6 @@
   },
   "files": [
     "dist/**/*",
-    "node_modules/@modelcontextprotocol/**/*",
     "README.md",
     "LICENSE"
   ],
@@ -28,7 +27,8 @@
     "test": "npm run build && jest",
     "test:mock": "npm run build && jest src/__tests__/mcp-tools.test.ts",
     "test:real": "npm run build && jest src/__tests__/real-db.test.ts --verbose",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "postinstall": "npm install --no-save @modelcontextprotocol/sdk@^1.13.1 || true"
   },
   "keywords": [
     "mcp",
@@ -70,9 +70,9 @@
     "@modelcontextprotocol/sdk": "^1.13.1",
     "dotenv": "^16.5.0"
   },
-  "peerDependencies": {
-    "@modelcontextprotocol/sdk": "^1.13.1"
-  },
+  "bundledDependencies": [
+    "@modelcontextprotocol/sdk"
+  ],
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.3",
