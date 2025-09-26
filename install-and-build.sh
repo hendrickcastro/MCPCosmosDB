@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script para asegurar instalación y build automático
+# Script to ensure automatic installation and build
 set -e
 
-echo "🚀 Instalando y construyendo MCPCosmosDB..."
+echo "🚀 Installing and building MCPCosmosDB..."
 
 echo "Clearing npm and npx cache..."
 npm cache clean --force

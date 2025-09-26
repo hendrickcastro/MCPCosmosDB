@@ -413,4 +413,9 @@ FodyWeavers.xsd
 cursor_mcp_config.real.json
 claude_desktop_config.real.json
 
-dist
+/dist
+.idea
+.cursor
+.trae
+.DS_Store
+/_Guide

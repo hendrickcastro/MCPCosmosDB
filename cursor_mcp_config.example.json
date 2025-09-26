@@ -5,7 +5,6 @@
       "-y",
       "hendrickcastro/MCPCosmosDB"
     ],
-    "description": "Servidor MCP para interactuar con Azure CosmosDB.",
     "disabled": false,
     "env": {
       "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-cosmos-key-here;",
