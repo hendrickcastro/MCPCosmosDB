@@ -415,7 +415,7 @@ claude_desktop_config.real.json
 
 /dist
 .idea
-.cursor
-.trae
+.cursor/
+.trae/
 .DS_Store
 /_Guide
