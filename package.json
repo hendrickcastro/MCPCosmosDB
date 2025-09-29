@@ -67,6 +67,7 @@
   "license": "MIT",
   "dependencies": {
     "@azure/cosmos": "^4.4.1",
+    "@azure/logger": "^1.0.4",
     "@modelcontextprotocol/sdk": "^1.13.1",
     "dotenv": "^16.5.0"
   },
@@ -74,6 +75,10 @@
     "@modelcontextprotocol/sdk",
     "@azure/cosmos"
   ],
+  "overrides": {
+    "@azure/keyvault-keys": false,
+    "@azure/keyvault-common": false
+  },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.3",
