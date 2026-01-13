@@ -22,13 +22,12 @@
   "scripts": {
     "clean": "rimraf dist",
     "start": "ts-node src/server.ts",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && esbuild src/server.ts --bundle --platform=node --outfile=dist/server.js --external:fsevents",
     "prepublishOnly": "npm run build",
     "test": "npm run build && jest",
     "test:mock": "npm run build && jest src/__tests__/mcp-tools.test.ts",
     "test:real": "npm run build && jest src/__tests__/real-db.test.ts --verbose",
-    "prepare": "npm run build",
-    "postinstall": "npm install --no-save @modelcontextprotocol/sdk@^1.13.1 @azure/cosmos@^4.4.1 || true"
+    "prepare": "npm run build"
   },
   "keywords": [
     "mcp",
@@ -69,22 +68,14 @@
     "@azure/cosmos": "^4.4.1",
     "@azure/logger": "^1.0.4",
     "@modelcontextprotocol/sdk": "^1.13.1",
-    "dotenv": "^16.5.0",
-    "zod": "^3.23.8"
-  },
-  "bundledDependencies": [
-    "@modelcontextprotocol/sdk",
-    "@azure/cosmos"
-  ],
-  "overrides": {
-    "@azure/keyvault-keys": false,
-    "@azure/keyvault-common": false
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.3",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
+    "esbuild": "^0.25.10",
     "jest": "^30.0.2",
     "nodemon": "^3.1.10",
     "rimraf": "^6.0.1",
@@ -94,5 +85,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "bundleDependencies": [
+    "@modelcontextprotocol/sdk",
+    "@azure/cosmos"
+  ]
 }
