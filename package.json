@@ -22,7 +22,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "start": "ts-node src/server.ts",
-    "build": "npm run clean && esbuild src/server.ts --bundle --platform=node --outfile=dist/server.js --external:fsevents",
+    "build": "npm run clean && esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:fsevents --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "prepublishOnly": "npm run build",
     "test": "npm run build && jest",
     "test:mock": "npm run build && jest src/__tests__/mcp-tools.test.ts",
