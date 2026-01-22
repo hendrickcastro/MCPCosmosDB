@@ -6,6 +6,11 @@ dotenv.config();
 let cosmosClient: CosmosClient | null = null;
 let database: Database | null = null;
 
+// Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
+const log = (message: string): void => {
+  process.stderr.write(`${message}\n`);
+};
+
 // Helper function to parse boolean values
 const parseBoolean = (value: string | undefined, defaultValue: boolean = false): boolean => {
   if (!value) return defaultValue;
@@ -48,7 +53,7 @@ const buildConfig = () => {
 export const connectCosmosDB = async (): Promise<void> => {
   try {
     if (cosmosClient) {
-      console.error('CosmosDB client already connected');
+      log('CosmosDB client already connected');
       return;
     }
 
@@ -68,9 +73,9 @@ export const connectCosmosDB = async (): Promise<void> => {
     // Test connection by reading database info
     await database.read();
     
-    console.error(`Successfully connected to CosmosDB database: ${databaseId}`);
+    log(`Successfully connected to CosmosDB database: ${databaseId}`);
   } catch (error: any) {
-    console.error('Error connecting to CosmosDB:', error.message);
+    log(`Error connecting to CosmosDB: ${error.message}`);
     throw error;
   }
 };
@@ -103,7 +108,7 @@ export const closeConnection = async (): Promise<void> => {
     await cosmosClient.dispose();
     cosmosClient = null;
     database = null;
-    console.error('CosmosDB connection closed');
+    log('CosmosDB connection closed');
   }
 };
 
@@ -116,4 +121,4 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   await closeConnection();
   process.exit(0);
-}); 
+});

@@ -1,6 +1,11 @@
 import { getContainer } from '../db.js';
 import { ToolResult, DocumentInfo, QueryStats, SchemaAnalysis, PropertyAnalysis } from './types.js';
 
+// Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
+const log = (message: string): void => {
+  process.stderr.write(`${message}\n`);
+};
+
 /**
  * Execute a SQL query against a CosmosDB container
  */
@@ -12,7 +17,7 @@ export const mcp_execute_query = async (args: {
   enable_cross_partition?: boolean;
 }): Promise<ToolResult<{ documents: any[]; stats: QueryStats }>> => {
   const { container_id, query, parameters, max_items = 100, enable_cross_partition = true } = args;
-  console.error('Executing mcp_execute_query with:', args);
+  log(`Executing mcp_execute_query with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
@@ -40,7 +45,7 @@ export const mcp_execute_query = async (args: {
 
     return { success: true, data: { documents, stats } };
   } catch (error: any) {
-    console.error(`Error in mcp_execute_query for container ${container_id}: ${error.message}`);
+    log(`Error in mcp_execute_query for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
@@ -55,7 +60,7 @@ export const mcp_get_documents = async (args: {
   filter_conditions?: Record<string, any>;
 }): Promise<ToolResult<DocumentInfo[]>> => {
   const { container_id, limit = 100, partition_key, filter_conditions } = args;
-  console.error('Executing mcp_get_documents with:', args);
+  log(`Executing mcp_get_documents with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
@@ -89,7 +94,7 @@ export const mcp_get_documents = async (args: {
 
     return { success: true, data: documents };
   } catch (error: any) {
-    console.error(`Error in mcp_get_documents for container ${container_id}: ${error.message}`);
+    log(`Error in mcp_get_documents for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
@@ -103,7 +108,7 @@ export const mcp_get_document_by_id = async (args: {
   partition_key: string; 
 }): Promise<ToolResult<DocumentInfo>> => {
   const { container_id, document_id, partition_key } = args;
-  console.error('Executing mcp_get_document_by_id with:', args);
+  log(`Executing mcp_get_document_by_id with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
@@ -111,7 +116,7 @@ export const mcp_get_document_by_id = async (args: {
 
     return { success: true, data: document };
   } catch (error: any) {
-    console.error(`Error in mcp_get_document_by_id for document ${document_id}: ${error.message}`);
+    log(`Error in mcp_get_document_by_id for document ${document_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
@@ -124,7 +129,7 @@ export const mcp_analyze_schema = async (args: {
   sample_size?: number; 
 }): Promise<ToolResult<SchemaAnalysis>> => {
   const { container_id, sample_size = 1000 } = args;
-  console.error('Executing mcp_analyze_schema with:', args);
+  log(`Executing mcp_analyze_schema with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
@@ -166,7 +171,7 @@ export const mcp_analyze_schema = async (args: {
 
     return { success: true, data: schemaAnalysis };
   } catch (error: any) {
-    console.error(`Error in mcp_analyze_schema for container ${container_id}: ${error.message}`);
+    log(`Error in mcp_analyze_schema for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
@@ -210,4 +215,4 @@ function getValueType(value: any): string {
   if (Array.isArray(value)) return 'array';
   if (value instanceof Date) return 'date';
   return typeof value;
-} 
+}

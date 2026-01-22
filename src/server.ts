@@ -13,6 +13,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
+const log = (message: string): void => {
+    process.stderr.write(`${message}\n`);
+};
+
 // Setup file logging
 function logToFile(message: string, ...args: any[]) {
     const logFile = path.join(__dirname, '..', 'mcp_debug.log');
@@ -23,9 +28,9 @@ function logToFile(message: string, ...args: any[]) {
 
     try {
         fs.appendFileSync(logFile, logMessage);
-        console.error(message, ...args); // Also log to console
+        log(`${message} ${args.join(' ')}`); // Also log to stderr
     } catch (err) {
-        console.error('Error writing to log file:', err);
+        log(`Error writing to log file: ${err}`);
     }
 }
 
@@ -182,10 +187,10 @@ async function runServer() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     logToFile("=== CosmosDB MCP Proxy STARTED ===");
-    console.error("CosmosDB MCP Proxy running on stdio");
+    log("CosmosDB MCP Proxy running on stdio");
 }
 
 runServer().catch((error) => {
-    console.error("Fatal error running server:", error);
+    log(`Fatal error running server: ${error}`);
     process.exit(1);
 });
