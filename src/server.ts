@@ -2,7 +2,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { connectCosmosDB } from './db.js';
+import { loadConnectionsFromEnv, connectAll, getRegisteredConnectionIds } from './db.js';
 import { MCP_COSMOSDB_TOOLS } from './tools.js';
 import * as toolHandlers from './mcp-server.js';
 import fs from 'fs';
@@ -12,6 +12,8 @@ import { fileURLToPath } from 'url';
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const VERSION = "2.0.0"; // Multi-connection version
 
 // Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
 const log = (message: string): void => {
@@ -53,11 +55,37 @@ function prepareDataForResponse(data: any): string {
     }
 }
 
+// Initialize connections
+async function initializeConnections() {
+    log(`[STARTUP] ===========================================`);
+    log(`[STARTUP] CosmosDB MCP Server v${VERSION}`);
+    log(`[STARTUP] PID: ${process.pid}`);
+    log(`[STARTUP] ===========================================`);
+    
+    // Load connections from environment
+    loadConnectionsFromEnv();
+    
+    const connectionIds = getRegisteredConnectionIds();
+    log(`[STARTUP] Registered connections: ${connectionIds.join(', ') || 'none'}`);
+    
+    if (connectionIds.length === 0) {
+        log(`[STARTUP] WARNING: No connections configured!`);
+        log(`[STARTUP] Use COSMOS_CONNECTIONS env var (JSON array) to configure connections.`);
+        log(`[STARTUP] Example: COSMOS_CONNECTIONS='[{"id":"main","connectionString":"...","databaseId":"mydb"}]'`);
+        return;
+    }
+    
+    // Connect all registered connections
+    await connectAll();
+    
+    log(`[STARTUP] ===========================================`);
+}
+
 // Create the server with name and version
 // @ts-ignore - Bypass TypeScript errors from the SDK's types
 const server = new Server({
-    name: "cosmosdb-proxy-server",
-    version: "1.2.3"
+    name: "cosmosdb-mcp-server",
+    version: VERSION
 }, {
     capabilities: {
         tools: {}
@@ -74,21 +102,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 // @ts-ignore - Bypass TypeScript errors from the SDK's types
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const toolName = request.params.name;
-    const input = request.params.arguments;
+    const input = request.params.arguments || {};
 
     logToFile(`[DEBUG] Tool called: ${toolName}, input: ${JSON.stringify(input)}`);
 
     try {
-        await connectCosmosDB();
         let result;
         
         switch (toolName) {
+            // Connection management
+            case 'mcp_list_connections':
+                result = await toolHandlers.mcp_list_connections();
+                break;
+            
             // Database and Container listing
             case 'mcp_list_databases':
-                result = await toolHandlers.mcp_list_databases();
+                result = await toolHandlers.mcp_list_databases(input as any);
                 break;
             case 'mcp_list_containers':
-                result = await toolHandlers.mcp_list_containers();
+                result = await toolHandlers.mcp_list_containers(input as any);
                 break;
             
             // Container information
@@ -166,7 +198,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             content: [
                 {
                     type: "text",
-                    text: serializedData
+                    text: `Tool: ${toolName}, Result: ${serializedData}`
                 }
             ]
         };
@@ -195,17 +227,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         logToFile(`[DEBUG] About to return catch error response for tool: ${toolName}`);
         return catchErrorResponse;
     }
-    // Don't close the connection after each call to allow multiple tool calls in the same session
-    // The connection will be managed by the MCP's own lifecycle
 });
 
 // Start the server using stdio transport
-// This is exactly how the working example does it
 async function runServer() {
+    // Initialize connections first
+    await initializeConnections();
+    
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logToFile("=== CosmosDB MCP Proxy STARTED (v1.2.3) ===");
-    log("CosmosDB MCP Proxy running on stdio");
+    logToFile(`=== CosmosDB MCP Server STARTED (v${VERSION}) ===`);
+    log(`CosmosDB MCP Server v${VERSION} running on stdio`);
 }
 
 runServer().catch((error) => {

@@ -16,7 +16,14 @@
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-green)](https://cursor.sh/)
 [![Trae AI](https://img.shields.io/badge/Trae%20AI-IDE-blue)](https://trae.ai/)
 
-A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** database operations. This server provides **12 powerful tools** for document database analysis, container discovery, data querying, and CRUD operations through the MCP protocol.
+A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** database operations. This server provides **13 powerful tools** for document database analysis, container discovery, data querying, and CRUD operations through the MCP protocol.
+
+## ✨ Features
+
+- 🔗 **Multi-Connection Support**: Manage multiple CosmosDB accounts/databases from a single MCP instance
+- 🔒 **Security First**: Write operations disabled by default
+- ⚡ **High Performance**: Connection caching and optimized queries
+- 📊 **13 Tools**: Complete set of database operations
 
 ## 🚀 Quick Start
 
@@ -27,12 +34,15 @@ A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** d
 
 ## ⚙️ Configuration
 
-### Required Environment Variables
+### Configuration Priority
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `OCONNSTRING` | CosmosDB connection string from Azure Portal | `AccountEndpoint=https://...;AccountKey=...;` |
-| `COSMOS_DATABASE_ID` | Database ID to connect to | `MyDatabase` |
+The server supports three configuration methods (in order of priority):
+
+| Priority | Method | Environment Variable | Description |
+|----------|--------|---------------------|-------------|
+| 1️⃣ | **External File** | `COSMOS_CONNECTIONS_FILE` | Path to JSON file with connections array |
+| 2️⃣ | **JSON String** | `COSMOS_CONNECTIONS` | Inline JSON array of connections |
+| 3️⃣ | **Single Connection** | `COSMOS_CONNECTION_STRING` + `COSMOS_DATABASE_ID` | Legacy single connection mode |
 
 ### 🔒 Security Configuration
 
@@ -42,10 +52,73 @@ A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** d
 
 > ⚠️ **IMPORTANT**: By default, all write operations are **DISABLED** for safety. Set `DB_ALLOW_MODIFICATIONS=true` only when you need to perform write operations.
 
-### Installation Options
+---
 
-#### Option 1: NPX from npm Registry (Recommended) ✅
-No installation needed! Configure your MCP client:
+## 📦 Installation Options
+
+### Option 1: Multi-Connection with External File (Recommended) ✅
+
+Create a connections file (e.g., `cosmos-connections.json`):
+
+```json
+[
+  {
+    "id": "production",
+    "connectionString": "AccountEndpoint=https://myapp-prod.documents.azure.com:443/;AccountKey=...;",
+    "databaseId": "ProductionDB",
+    "allowModifications": false,
+    "description": "Production database (read-only)"
+  },
+  {
+    "id": "development",
+    "connectionString": "AccountEndpoint=https://myapp-dev.documents.azure.com:443/;AccountKey=...;",
+    "databaseId": "DevDB",
+    "allowModifications": true,
+    "description": "Development database"
+  },
+  {
+    "id": "analytics",
+    "connectionString": "AccountEndpoint=https://analytics.documents.azure.com:443/;AccountKey=...;",
+    "databaseId": "AnalyticsDB",
+    "allowModifications": false,
+    "description": "Analytics database"
+  }
+]
+```
+
+Configure your MCP client:
+
+```json
+{
+  "mcpServers": {
+    "cosmosdb": {
+      "command": "npx",
+      "args": ["-y", "mcpcosmosdb@latest"],
+      "env": {
+        "COSMOS_CONNECTIONS_FILE": "/path/to/cosmos-connections.json"
+      }
+    }
+  }
+}
+```
+
+### Option 2: Multi-Connection with Inline JSON
+
+```json
+{
+  "mcpServers": {
+    "cosmosdb": {
+      "command": "npx",
+      "args": ["-y", "mcpcosmosdb@latest"],
+      "env": {
+        "COSMOS_CONNECTIONS": "[{\"id\":\"prod\",\"connectionString\":\"AccountEndpoint=https://...\",\"databaseId\":\"ProdDB\",\"allowModifications\":false},{\"id\":\"dev\",\"connectionString\":\"AccountEndpoint=https://...\",\"databaseId\":\"DevDB\",\"allowModifications\":true}]"
+      }
+    }
+  }
+}
+```
+
+### Option 3: Single Connection (Legacy)
 
 **Read-Only Mode (Default - Safe):**
 ```json
@@ -55,7 +128,7 @@ No installation needed! Configure your MCP client:
       "command": "npx",
       "args": ["-y", "mcpcosmosdb@latest"],
       "env": {
-        "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
+        "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
         "COSMOS_DATABASE_ID": "your-database-name"
       }
     }
@@ -71,7 +144,7 @@ No installation needed! Configure your MCP client:
       "command": "npx",
       "args": ["-y", "mcpcosmosdb@latest"],
       "env": {
-        "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
+        "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
         "COSMOS_DATABASE_ID": "your-database-name",
         "DB_ALLOW_MODIFICATIONS": "true"
       }
@@ -80,7 +153,8 @@ No installation needed! Configure your MCP client:
 }
 ```
 
-#### Option 2: NPX from GitHub
+### Option 4: NPX from GitHub
+
 ```json
 {
   "mcpServers": {
@@ -88,7 +162,7 @@ No installation needed! Configure your MCP client:
       "command": "npx",
       "args": ["-y", "hendrickcastro/MCPCosmosDB"],
       "env": {
-        "OCONNSTRING": "AccountEndpoint=https://...;AccountKey=...;",
+        "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://...;AccountKey=...;",
         "COSMOS_DATABASE_ID": "your-database-name"
       }
     }
@@ -96,30 +170,37 @@ No installation needed! Configure your MCP client:
 }
 ```
 
-#### Option 2: Local Development
+### Option 5: Local Development
+
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/hendrickcastro/MCPCosmosDB.git
 cd MCPCosmosDB
 npm install && npm run build
 ```
 
-Then configure with local path:
 ```json
 {
   "mcpServers": {
-    "mcp-cosmosdb": {
+    "cosmosdb": {
       "command": "node",
       "args": ["path/to/MCPCosmosDB/dist/server.js"],
       "env": {
-        "OCONNSTRING": "your-connection-string",
-        "COSMOS_DATABASE_ID": "your-database-name"
+        "COSMOS_CONNECTIONS_FILE": "/path/to/cosmos-connections.json"
       }
     }
   }
 }
 ```
 
-## 🛠️ Available Tools (12 Total)
+---
+
+## 🛠️ Available Tools (13 Total)
+
+### 🔗 Connection Management
+
+| Tool | Description |
+|------|-------------|
+| `mcp_list_connections` | List all configured connections with their status |
 
 ### 📖 Read Operations (Always Available)
 
@@ -134,7 +215,7 @@ Then configure with local path:
 | `mcp_get_document_by_id` | Get a specific document by ID and partition key |
 | `mcp_analyze_schema` | Analyze document schema structure in containers |
 
-### ✏️ Write Operations (Require `DB_ALLOW_MODIFICATIONS=true`)
+### ✏️ Write Operations (Require `allowModifications: true`)
 
 | Tool | Description |
 |------|-------------|
@@ -143,49 +224,88 @@ Then configure with local path:
 | `mcp_delete_document` | Delete a document from a container |
 | `mcp_upsert_document` | Create or update a document (upsert operation) |
 
-> 🛡️ **Security Note**: Write operations are blocked by default. If `DB_ALLOW_MODIFICATIONS` is not set to `true`, these operations will return an error message explaining how to enable them.
+> 🛡️ **Security Note**: Write operations are blocked by default. Set `allowModifications: true` in the connection config or `DB_ALLOW_MODIFICATIONS=true` for single connection mode.
+
+---
 
 ## 📋 Usage Examples
 
-### Container Analysis
-```typescript
-// List all containers
-const containers = await mcp_list_containers();
+### Multi-Connection Usage
 
-// Get container definition (partition key, indexing policy)
+```typescript
+// List all available connections
+const connections = await mcp_list_connections();
+// Returns: { connections: [{id: "prod", databaseId: "ProdDB", isConnected: true}, ...] }
+
+// Query specific connection using connection_id
+const prodData = await mcp_cosmos_query({
+  connection_id: "production",
+  container_id: "users",
+  query: "SELECT TOP 10 c.id, c.name FROM c ORDER BY c._ts DESC"
+});
+
+const devData = await mcp_cosmos_query({
+  connection_id: "development",
+  container_id: "users",
+  query: "SELECT TOP 10 c.id, c.name FROM c ORDER BY c._ts DESC"
+});
+```
+
+### Container Analysis
+
+```typescript
+// List all containers (uses default connection if connection_id not specified)
+const containers = await mcp_list_containers({
+  connection_id: "production"
+});
+
+// Get container definition
 const containerDef = await mcp_get_container_definition({ 
+  connection_id: "production",
   container_id: "users" 
 });
 
 // Get container statistics
 const stats = await mcp_get_container_stats({ 
+  connection_id: "production",
   container_id: "users",
   sample_size: 1000
 });
 ```
 
 ### Querying Data
+
+⚠️ **IMPORTANT**: Always use `TOP N` and specify fields. **NEVER use `SELECT *`** - it causes timeouts and high RU consumption in large containers.
+
 ```typescript
-// Execute SQL query with CosmosDB syntax
+// ✅ CORRECT: Using TOP and specific fields
 const result = await mcp_cosmos_query({
+  connection_id: "production",
   container_id: "products",
-  query: "SELECT * FROM c WHERE c.category = @category AND c.price > @minPrice",
-  parameters: { category: "electronics", minPrice: 100 },
-  max_items: 50
+  query: "SELECT TOP 50 c.id, c.name, c.price FROM c WHERE c.category = @category",
+  parameters: { category: "electronics" }
 });
+
+// ❌ WRONG: SELECT * without TOP (will timeout on large containers)
+// query: "SELECT * FROM c WHERE c.category = @category"
 
 // Get documents with simple filters
 const documents = await mcp_get_documents({
+  connection_id: "production",
   container_id: "orders",
-  filter_conditions: { status: "completed", year: 2024 },
+  filter_conditions: { status: "completed" },
+  order_by: "_ts",
+  order_direction: "DESC",
   limit: 100
 });
 ```
 
 ### Document Operations
+
 ```typescript
 // Get specific document by ID
 const document = await mcp_get_document_by_id({
+  connection_id: "production",
   container_id: "users",
   document_id: "user-123",
   partition_key: "user-123"
@@ -193,15 +313,18 @@ const document = await mcp_get_document_by_id({
 
 // Analyze schema
 const schema = await mcp_analyze_schema({
+  connection_id: "production",
   container_id: "products",
   sample_size: 500
 });
 ```
 
-### CRUD Operations (Requires `DB_ALLOW_MODIFICATIONS=true`)
+### CRUD Operations (Requires `allowModifications: true`)
+
 ```typescript
 // Create a new document
 const created = await mcp_create_document({
+  connection_id: "development",  // Use a connection with write access
   container_id: "users",
   document: {
     id: "user-456",
@@ -214,6 +337,7 @@ const created = await mcp_create_document({
 
 // Update a document (full replacement)
 const updated = await mcp_update_document({
+  connection_id: "development",
   container_id: "users",
   document_id: "user-456",
   document: {
@@ -227,6 +351,7 @@ const updated = await mcp_update_document({
 
 // Upsert a document (create or update)
 const upserted = await mcp_upsert_document({
+  connection_id: "development",
   container_id: "users",
   document: {
     id: "user-789",
@@ -238,69 +363,68 @@ const upserted = await mcp_upsert_document({
 
 // Delete a document
 const deleted = await mcp_delete_document({
+  connection_id: "development",
   container_id: "users",
   document_id: "user-456",
   partition_key: "user-456"
 });
 ```
 
-### Optional Configuration
+---
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COSMOS_ENABLE_ENDPOINT_DISCOVERY` | Enable automatic endpoint discovery | `true` |
-| `COSMOS_MAX_RETRY_ATTEMPTS` | Maximum retry attempts for requests | `9` |
-| `COSMOS_MAX_RETRY_WAIT_TIME` | Maximum retry wait time (ms) | `30000` |
-| `COSMOS_ENABLE_CROSS_PARTITION_QUERY` | Enable cross-partition queries | `true` |
+## 🔧 Connection File Schema
 
-### Configuration Examples
-
-**Production Environment (Read-Only):**
-```json
-{
-  "env": {
-    "OCONNSTRING": "AccountEndpoint=https://mycompany-prod.documents.azure.com:443/;AccountKey=your-production-key;",
-    "COSMOS_DATABASE_ID": "ProductionDB"
-  }
+```typescript
+interface ConnectionConfig {
+  id: string;                    // Unique identifier for the connection
+  connectionString: string;      // CosmosDB connection string
+  databaseId: string;            // Database ID to connect to
+  allowModifications?: boolean;  // Enable write operations (default: false)
+  description?: string;          // Optional description
 }
 ```
 
-**Development Environment (With Write Access):**
+**Example `cosmos-connections.json`:**
+
 ```json
-{
-  "env": {
-    "OCONNSTRING": "AccountEndpoint=https://mycompany-dev.documents.azure.com:443/;AccountKey=your-dev-key;",
-    "COSMOS_DATABASE_ID": "DevDB",
-    "DB_ALLOW_MODIFICATIONS": "true"
+[
+  {
+    "id": "athlete",
+    "connectionString": "AccountEndpoint=https://dbsqlcosmosathlete.documents.azure.com:443/;AccountKey=...;",
+    "databaseId": "data",
+    "allowModifications": false,
+    "description": "Athlete data"
+  },
+  {
+    "id": "events",
+    "connectionString": "AccountEndpoint=https://dbsqlcosmosevents.documents.azure.com:443/;AccountKey=...;",
+    "databaseId": "events",
+    "allowModifications": false,
+    "description": "Events data"
   }
-}
+]
 ```
 
-**CosmosDB Emulator (Local):**
-```json
-{
-  "env": {
-    "OCONNSTRING": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;",
-    "COSMOS_DATABASE_ID": "TestDB",
-    "DB_ALLOW_MODIFICATIONS": "true"
-  }
-}
-```
+---
 
 ## 🚨 Troubleshooting
 
 **Connection Issues:**
-- **Invalid connection string**: Verify OCONNSTRING format includes AccountEndpoint and AccountKey
-- **Database not found**: Check COSMOS_DATABASE_ID matches existing database
+- **Invalid connection string**: Verify connection string format includes AccountEndpoint and AccountKey
+- **Database not found**: Check databaseId matches existing database
 - **Request timeout**: Increase COSMOS_MAX_RETRY_WAIT_TIME or check network
 
 **Query Issues:**
+- **Query timeout**: Use `TOP N` to limit results, specify only needed fields, avoid `SELECT *`
 - **Cross partition query required**: Set `enable_cross_partition: true` in query parameters
-- **Query timeout**: Reduce sample sizes or add specific filters
 - **Partition key required**: Specify partition_key for single-partition operations
 
+**Multi-Connection Issues:**
+- **Connection not found**: Use `mcp_list_connections` to see available connection IDs
+- **Wrong database**: Verify the `connection_id` parameter points to the correct connection
+
 **Write Operation Blocked:**
-- **Error: "Database modifications are disabled"**: Set `DB_ALLOW_MODIFICATIONS=true` in your environment configuration
+- **Error: "Database modifications are disabled"**: Set `allowModifications: true` in connection config or `DB_ALLOW_MODIFICATIONS=true`
 - This is a safety feature - write operations are disabled by default
 
 **CosmosDB Emulator:**
@@ -308,6 +432,8 @@ const deleted = await mcp_delete_document({
 2. Start emulator on port 8081
 3. Use default emulator connection string
 4. Create database and containers for testing
+
+---
 
 ## 🧪 Development
 
@@ -326,27 +452,33 @@ src/
 │   ├── containerAnalysis.ts  # Container operations
 │   ├── dataOperations.ts     # Data queries & CRUD
 │   └── types.ts              # Type definitions
-├── db.ts                     # CosmosDB connection & security
+├── db.ts                     # CosmosDB connection & multi-connection management
 ├── server.ts                 # MCP server setup
 └── tools.ts                  # Tool definitions
 ```
 
 **Key Features:**
-- ⚡ Connection management with retry logic
+- ⚡ Connection caching and pooling
+- 🔗 Multi-connection management
 - 🛡️ Comprehensive error handling
-- 🔒 Write operation protection (DB_ALLOW_MODIFICATIONS)
+- 🔒 Write operation protection per connection
 - 📊 Performance metrics and request charges
-- 🔧 Environment-based configuration
+- 🔧 Flexible configuration options
 - 📋 Intelligent schema analysis
+
+---
 
 ## 📝 Important Notes
 
+- **Query Best Practices**: Always use `TOP N` and specify fields - never use `SELECT *`
 - **Container IDs**: Use exact names as in CosmosDB
 - **Partition Keys**: Required for optimal performance and CRUD operations
 - **Cross-Partition Queries**: Can be expensive; use filters
 - **Request Charges**: Monitor RU consumption
-- **Security**: Store connection strings securely
-- **Write Protection**: Enable `DB_ALLOW_MODIFICATIONS` only when needed
+- **Security**: Store connection strings securely (use external file)
+- **Write Protection**: Enable only for connections that need it
+
+---
 
 ## 🤝 Contributing
 
@@ -363,13 +495,13 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🏷️ Tags & Keywords
 
-**Database:** `cosmosdb` `azure-cosmosdb` `nosql` `document-database` `database-analysis` `database-tools` `azure` `database-management` `database-operations` `data-analysis`
+**Database:** `cosmosdb` `azure-cosmosdb` `nosql` `document-database` `database-analysis` `database-tools` `azure` `database-management` `database-operations` `data-analysis` `multi-database`
 
 **MCP & AI:** `model-context-protocol` `mcp-server` `mcp-tools` `ai-tools` `claude-desktop` `cursor-ide` `anthropic` `llm-integration` `ai-database` `intelligent-database`
 
 **Technology:** `typescript` `nodejs` `npm-package` `cli-tool` `database-client` `nosql-client` `database-sdk` `rest-api` `json-api` `database-connector`
 
-**Features:** `container-analysis` `document-operations` `sql-queries` `schema-analysis` `query-execution` `database-search` `data-exploration` `database-insights` `partition-management` `throughput-analysis` `crud-operations` `document-crud`
+**Features:** `container-analysis` `document-operations` `sql-queries` `schema-analysis` `query-execution` `database-search` `data-exploration` `database-insights` `partition-management` `throughput-analysis` `crud-operations` `document-crud` `multi-connection`
 
 **Use Cases:** `database-development` `data-science` `business-intelligence` `database-migration` `schema-documentation` `performance-analysis` `data-governance` `database-monitoring` `troubleshooting` `automation`
 

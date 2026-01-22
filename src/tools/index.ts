@@ -10,6 +10,7 @@ export {
 
 // Data Operation Tools
 export {
+  mcp_list_connections,
   mcp_execute_query,
   mcp_get_documents,
   mcp_get_document_by_id,

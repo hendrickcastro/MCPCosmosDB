@@ -1,4 +1,4 @@
-import { getDatabase, getContainer } from '../db.js';
+import { getDatabase, getContainer, getConnectionInfo, getRegisteredConnectionsInfo } from '../db.js';
 import { ToolResult, ContainerInfo, ContainerStats, DatabaseInfo } from './types.js';
 
 // Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
@@ -9,22 +9,39 @@ const log = (message: string): void => {
 /**
  * List all databases in the CosmosDB account
  */
-export const mcp_list_databases = async (): Promise<ToolResult<DatabaseInfo[]>> => {
-  log('Executing mcp_list_databases');
+export const mcp_list_databases = async (args?: { connection_id?: string }): Promise<ToolResult<any>> => {
+  const connection_id = args?.connection_id;
+  log(`Executing mcp_list_databases with connection_id: ${connection_id || 'default'}`);
 
   try {
-    const database = getDatabase();
+    const connInfo = getConnectionInfo(connection_id);
+    log(`[DEBUG] Connection info: ${JSON.stringify(connInfo)}`);
+    
+    const database = getDatabase(connection_id);
     const client = database.client;
     
     const { resources: databases } = await client.databases.readAll().fetchAll();
     
-    const databasesInfo: DatabaseInfo[] = databases.map(db => ({
+    const databasesInfo = databases.map(db => ({
       id: db.id,
       etag: db._etag,
       timestamp: new Date(db._ts * 1000)
     }));
 
-    return { success: true, data: databasesInfo };
+    // Include connection info for clarity
+    return { 
+      success: true, 
+      data: {
+        connection: {
+          id: connInfo.connectionId,
+          endpoint: connInfo.endpoint,
+          databaseId: connInfo.databaseId,
+          allowModifications: connInfo.allowModifications
+        },
+        availableConnections: connInfo.registeredConnections,
+        databases: databasesInfo
+      }
+    };
   } catch (error: any) {
     log(`Error in mcp_list_databases: ${error.message}`);
     return { success: false, error: error.message };
@@ -34,11 +51,12 @@ export const mcp_list_databases = async (): Promise<ToolResult<DatabaseInfo[]>> 
 /**
  * List all containers in the database
  */
-export const mcp_list_containers = async (): Promise<ToolResult<ContainerInfo[]>> => {
-  log('Executing mcp_list_containers');
+export const mcp_list_containers = async (args?: { connection_id?: string }): Promise<ToolResult<ContainerInfo[]>> => {
+  const connection_id = args?.connection_id;
+  log(`Executing mcp_list_containers with connection_id: ${connection_id || 'default'}`);
 
   try {
-    const database = getDatabase();
+    const database = getDatabase(connection_id);
     const { resources: containers } = await database.containers.readAll().fetchAll();
     
     const containersInfo: ContainerInfo[] = containers.map((container: any) => ({
@@ -62,12 +80,12 @@ export const mcp_list_containers = async (): Promise<ToolResult<ContainerInfo[]>
 /**
  * Get detailed information about a specific container (definition, partition key, indexing policy)
  */
-export const mcp_get_container_definition = async (args: { container_id: string }): Promise<ToolResult<ContainerInfo & { throughputInfo?: any }>> => {
-  const { container_id } = args;
+export const mcp_get_container_definition = async (args: { container_id: string; connection_id?: string }): Promise<ToolResult<ContainerInfo & { throughputInfo?: any }>> => {
+  const { container_id, connection_id } = args;
   log(`Executing mcp_get_container_definition with: ${JSON.stringify(args)}`);
 
   try {
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     
     // Read container definition
     const { resource: containerDef } = await container.read();
@@ -108,12 +126,12 @@ export const mcp_get_container_definition = async (args: { container_id: string 
 /**
  * Get statistical information about a container (document count, size, partition distribution)
  */
-export const mcp_get_container_stats = async (args: { container_id: string; sample_size?: number }): Promise<ToolResult<ContainerStats>> => {
-  const { container_id, sample_size = 1000 } = args;
+export const mcp_get_container_stats = async (args: { container_id: string; sample_size?: number; connection_id?: string }): Promise<ToolResult<ContainerStats>> => {
+  const { container_id, sample_size = 1000, connection_id } = args;
   log(`Executing mcp_get_container_stats with: ${JSON.stringify(args)}`);
 
   try {
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     
     // Query to count total documents
     const countQuery = 'SELECT VALUE COUNT(1) FROM c';

@@ -1,4 +1,4 @@
-import { getContainer, validateModificationAllowed } from '../db.js';
+import { getContainer, validateModificationAllowed, getRegisteredConnectionsInfo, getConnectionInfo } from '../db.js';
 import { 
   ToolResult, 
   DocumentInfo, 
@@ -20,6 +20,32 @@ const log = (message: string): void => {
 };
 
 /**
+ * List all available connections
+ */
+export const mcp_list_connections = async (): Promise<ToolResult<{
+  connections: Array<{id: string; databaseId: string; description?: string; isConnected: boolean}>;
+  defaultConnection: string | null;
+}>> => {
+  log(`Executing mcp_list_connections`);
+  
+  try {
+    const connections = getRegisteredConnectionsInfo();
+    const defaultConn = connections.find(c => c.isConnected)?.id || connections[0]?.id || null;
+    
+    return { 
+      success: true, 
+      data: {
+        connections,
+        defaultConnection: defaultConn
+      }
+    };
+  } catch (error: any) {
+    log(`Error in mcp_list_connections: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Execute a SQL query against a CosmosDB container
  */
 export const mcp_execute_query = async (args: { 
@@ -28,12 +54,13 @@ export const mcp_execute_query = async (args: {
   parameters?: Record<string, any>;
   max_items?: number;
   enable_cross_partition?: boolean;
+  connection_id?: string;
 }): Promise<ToolResult<{ documents: any[]; stats: QueryStats }>> => {
-  const { container_id, query, parameters, max_items = 100, enable_cross_partition = true } = args;
-  log(`Executing mcp_execute_query with: ${JSON.stringify(args)}`);
+  const { container_id, query, parameters, max_items = 100, enable_cross_partition = true, connection_id } = args;
+  log(`Executing mcp_execute_query with: ${JSON.stringify({ ...args, query: query.substring(0, 100) })}`);
 
   try {
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     const startTime = Date.now();
 
     // Prepare query spec
@@ -73,12 +100,13 @@ export const mcp_get_documents = async (args: {
   filter_conditions?: Record<string, any>;
   order_by?: string;
   order_direction?: 'ASC' | 'DESC';
+  connection_id?: string;
 }): Promise<ToolResult<DocumentInfo[]>> => {
-  const { container_id, limit = 100, partition_key, filter_conditions, order_by, order_direction = 'ASC' } = args;
+  const { container_id, limit = 100, partition_key, filter_conditions, order_by, order_direction = 'ASC', connection_id } = args;
   log(`Executing mcp_get_documents with: ${JSON.stringify(args)}`);
 
   try {
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
 
     // Build query with proper TOP clause (not subquery)
     const whereClauses: string[] = [];
@@ -131,13 +159,14 @@ export const mcp_get_documents = async (args: {
 export const mcp_get_document_by_id = async (args: { 
   container_id: string; 
   document_id: string; 
-  partition_key: PartitionKeyValue; 
+  partition_key: PartitionKeyValue;
+  connection_id?: string;
 }): Promise<ToolResult<DocumentInfo>> => {
-  const { container_id, document_id, partition_key } = args;
+  const { container_id, document_id, partition_key, connection_id } = args;
   log(`Executing mcp_get_document_by_id with: ${JSON.stringify(args)}`);
 
   try {
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     const { resource: document, statusCode } = await container.item(document_id, partition_key).read();
 
     if (!document) {
@@ -154,20 +183,20 @@ export const mcp_get_document_by_id = async (args: {
 /**
  * Create a new document in a container
  */
-export const mcp_create_document = async (args: CreateDocumentArgs): Promise<ToolResult<DocumentOperationResult>> => {
-  const { container_id, document, partition_key } = args;
-  log(`Executing mcp_create_document with: ${JSON.stringify({ container_id, document_id: document.id, partition_key })}`);
+export const mcp_create_document = async (args: CreateDocumentArgs & { connection_id?: string }): Promise<ToolResult<DocumentOperationResult>> => {
+  const { container_id, document, partition_key, connection_id } = args;
+  log(`Executing mcp_create_document with: ${JSON.stringify({ container_id, document_id: document.id, partition_key, connection_id })}`);
 
   try {
     // Validate modifications are allowed
-    validateModificationAllowed('create_document');
+    validateModificationAllowed('create_document', connection_id);
     
     // Validate document has an id
     if (!document.id) {
       return { success: false, error: "Document must have an 'id' field" };
     }
 
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     
     const { resource: createdDocument, requestCharge } = await container.items.create(
       document
@@ -201,13 +230,13 @@ export const mcp_create_document = async (args: CreateDocumentArgs): Promise<Too
 /**
  * Update (replace) an existing document in a container
  */
-export const mcp_update_document = async (args: UpdateDocumentArgs): Promise<ToolResult<DocumentOperationResult>> => {
-  const { container_id, document_id, document, partition_key } = args;
-  log(`Executing mcp_update_document with: ${JSON.stringify({ container_id, document_id, partition_key })}`);
+export const mcp_update_document = async (args: UpdateDocumentArgs & { connection_id?: string }): Promise<ToolResult<DocumentOperationResult>> => {
+  const { container_id, document_id, document, partition_key, connection_id } = args;
+  log(`Executing mcp_update_document with: ${JSON.stringify({ container_id, document_id, partition_key, connection_id })}`);
 
   try {
     // Validate modifications are allowed
-    validateModificationAllowed('update_document');
+    validateModificationAllowed('update_document', connection_id);
     
     // Ensure document has the correct id
     if (document.id && document.id !== document_id) {
@@ -217,7 +246,7 @@ export const mcp_update_document = async (args: UpdateDocumentArgs): Promise<Too
     // Ensure id is set
     const documentToUpdate = { ...document, id: document_id };
 
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     
     const { resource: updatedDocument, requestCharge } = await container
       .item(document_id, partition_key)
@@ -251,15 +280,15 @@ export const mcp_update_document = async (args: UpdateDocumentArgs): Promise<Too
 /**
  * Delete a document from a container
  */
-export const mcp_delete_document = async (args: DeleteDocumentArgs): Promise<ToolResult<DeleteOperationResult>> => {
-  const { container_id, document_id, partition_key } = args;
+export const mcp_delete_document = async (args: DeleteDocumentArgs & { connection_id?: string }): Promise<ToolResult<DeleteOperationResult>> => {
+  const { container_id, document_id, partition_key, connection_id } = args;
   log(`Executing mcp_delete_document with: ${JSON.stringify(args)}`);
 
   try {
     // Validate modifications are allowed
-    validateModificationAllowed('delete_document');
+    validateModificationAllowed('delete_document', connection_id);
     
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     
     const { requestCharge } = await container
       .item(document_id, partition_key)
@@ -288,20 +317,20 @@ export const mcp_delete_document = async (args: DeleteDocumentArgs): Promise<Too
 /**
  * Create or update a document (upsert operation)
  */
-export const mcp_upsert_document = async (args: UpsertDocumentArgs): Promise<ToolResult<DocumentOperationResult>> => {
-  const { container_id, document, partition_key } = args;
-  log(`Executing mcp_upsert_document with: ${JSON.stringify({ container_id, document_id: document.id, partition_key })}`);
+export const mcp_upsert_document = async (args: UpsertDocumentArgs & { connection_id?: string }): Promise<ToolResult<DocumentOperationResult>> => {
+  const { container_id, document, partition_key, connection_id } = args;
+  log(`Executing mcp_upsert_document with: ${JSON.stringify({ container_id, document_id: document.id, partition_key, connection_id })}`);
 
   try {
     // Validate modifications are allowed
-    validateModificationAllowed('upsert_document');
+    validateModificationAllowed('upsert_document', connection_id);
     
     // Validate document has an id
     if (!document.id) {
       return { success: false, error: "Document must have an 'id' field" };
     }
 
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
     
     const { resource: upsertedDocument, requestCharge } = await container.items.upsert(
       document
@@ -331,13 +360,14 @@ export const mcp_upsert_document = async (args: UpsertDocumentArgs): Promise<Too
  */
 export const mcp_analyze_schema = async (args: { 
   container_id: string; 
-  sample_size?: number; 
+  sample_size?: number;
+  connection_id?: string;
 }): Promise<ToolResult<SchemaAnalysis>> => {
-  const { container_id, sample_size = 100 } = args;
+  const { container_id, sample_size = 100, connection_id } = args;
   log(`Executing mcp_analyze_schema with: ${JSON.stringify(args)}`);
 
   try {
-    const container = getContainer(container_id);
+    const container = getContainer(container_id, connection_id);
 
     // Get sample documents
     const query = `SELECT TOP ${sample_size} * FROM c`;

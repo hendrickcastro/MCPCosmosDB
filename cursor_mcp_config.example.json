@@ -1,14 +1,11 @@
 {
-  "mcp-cosmosdb": {
+  "cosmosdb": {
     "command": "npx",
-    "args": [
-      "-y",
-      "hendrickcastro/MCPCosmosDB"
-    ],
+    "args": ["-y", "mcpcosmosdb@latest"],
+    "description": "Multi-connection CosmosDB MCP Server",
     "disabled": false,
     "env": {
-      "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-cosmos-key-here;",
-      "COSMOS_DATABASE_ID": "your-database-name"
+      "COSMOS_CONNECTIONS_FILE": "/path/to/cosmos-connections.json"
     }
   }
-} 
+}

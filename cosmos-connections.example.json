@@ -1,0 +1,24 @@
+[
+  {
+    "id": "production",
+    "connectionString": "AccountEndpoint=https://myapp-prod.documents.azure.com:443/;AccountKey=your-production-key;",
+    "databaseId": "ProductionDB",
+    "allowModifications": false,
+    "description": "Production database (read-only)"
+  },
+  {
+    "id": "development",
+    "connectionString": "AccountEndpoint=https://myapp-dev.documents.azure.com:443/;AccountKey=your-dev-key;",
+    "databaseId": "DevDB",
+    "allowModifications": true,
+    "description": "Development database (write enabled)"
+  },
+  {
+    "id": "analytics",
+    "connectionString": "AccountEndpoint=https://analytics.documents.azure.com:443/;AccountKey=your-analytics-key;",
+    "databaseId": "AnalyticsDB",
+    "allowModifications": false,
+    "description": "Analytics database"
+  }
+]
+

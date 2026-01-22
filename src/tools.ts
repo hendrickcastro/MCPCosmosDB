@@ -1,11 +1,32 @@
+// Common connection_id property for all tools
+const connectionIdProperty = {
+  connection_id: {
+    type: "string",
+    description: "ID of the connection to use. Use mcp_list_connections to see available connections. If not specified, uses the default connection."
+  }
+};
+
 export const MCP_COSMOSDB_TOOLS = [
+  // 0. List Available Connections - NEW!
+  {
+    name: "mcp_list_connections",
+    description: "List all available CosmosDB connections configured in this MCP server. Use this to discover which connection_id values you can use. Each connection points to a different CosmosDB account/database.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  },
+
   // 1. Database Operations
   {
     name: "mcp_list_databases",
     description: "List all databases in the CosmosDB account. Use this to discover available databases before querying containers. Returns database IDs, timestamps, and ETags.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        ...connectionIdProperty
+      },
       required: []
     }
   },
@@ -16,7 +37,9 @@ export const MCP_COSMOSDB_TOOLS = [
     description: "List all containers in the connected CosmosDB database. Use this to discover available containers and their partition key configurations before querying data. Returns container IDs, partition key paths, and indexing policies.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        ...connectionIdProperty
+      },
       required: []
     }
   },
@@ -24,14 +47,15 @@ export const MCP_COSMOSDB_TOOLS = [
   // 3. Container Information
   {
     name: "mcp_get_container_definition",
-    description: "Get detailed configuration of a specific container including partition key, indexing policy, and throughput settings. Use this to understand the container structure before writing queries. Example: mcp_get_container_definition({container_id: 'users'})",
+    description: "Get detailed configuration of a specific container including partition key, indexing policy, and throughput settings. Use this to understand the container structure before writing queries. Example: mcp_get_container_definition({container_id: 'users', connection_id: 'athlete'})",
     inputSchema: {
       type: "object",
       properties: {
         container_id: {
           type: "string",
           description: "The ID/name of the container (e.g., 'users', 'orders', 'products')"
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id"]
     }
@@ -52,7 +76,8 @@ export const MCP_COSMOSDB_TOOLS = [
           type: "number",
           description: "Number of documents to sample for statistics (default: 1000, higher = more accurate but slower)",
           default: 1000
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id"]
     }
@@ -63,16 +88,21 @@ export const MCP_COSMOSDB_TOOLS = [
     name: "mcp_cosmos_query",
     description: `Execute a CosmosDB SQL query against a container. Use this for complex queries with JOINs, aggregations, or custom SQL syntax.
 
+⚠️ IMPORTANT - AVOID SELECT *:
+- NEVER use SELECT * in large containers - it causes timeouts and high RU consumption
+- ALWAYS use TOP N to limit results: SELECT TOP 10 c.id, c.name FROM c
+- ALWAYS specify only the fields you need: SELECT c.id, c.name, c.email FROM c
+
 COSMOSDB SQL SYNTAX EXAMPLES:
-- Basic: SELECT * FROM c WHERE c.status = @status
+- Basic: SELECT TOP 10 c.id, c.name FROM c WHERE c.status = @status
 - With projection: SELECT c.id, c.name, c.email FROM c
 - Aggregation: SELECT VALUE COUNT(1) FROM c
-- Array contains: SELECT * FROM c WHERE ARRAY_CONTAINS(c.tags, 'urgent')
-- Nested: SELECT * FROM c WHERE c.address.city = 'Madrid'
-- ORDER BY: SELECT * FROM c ORDER BY c._ts DESC
+- Array contains: SELECT TOP 20 c.id FROM c WHERE ARRAY_CONTAINS(c.tags, 'urgent')
+- Nested: SELECT TOP 10 c.id, c.address FROM c WHERE c.address.city = 'Madrid'
+- ORDER BY: SELECT TOP 10 c.id, c._ts FROM c ORDER BY c._ts DESC
 
 PARAMETERS: Use @paramName syntax and provide values in the 'parameters' object.
-Example: query="SELECT * FROM c WHERE c.type = @type", parameters={type: "order"}`,
+Example: query="SELECT TOP 10 c.id, c.type FROM c WHERE c.type = @type", parameters={type: "order"}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -82,7 +112,7 @@ Example: query="SELECT * FROM c WHERE c.type = @type", parameters={type: "order"
         },
         query: {
           type: "string",
-          description: "CosmosDB SQL query. Use 'c' as the alias for the container. Example: 'SELECT * FROM c WHERE c.active = true'"
+          description: "CosmosDB SQL query. Use 'c' as the alias for the container. ALWAYS use TOP N and specify fields - NEVER use SELECT *. Example: 'SELECT TOP 10 c.id, c.name FROM c WHERE c.active = true'"
         },
         parameters: {
           type: "object",
@@ -97,7 +127,8 @@ Example: query="SELECT * FROM c WHERE c.type = @type", parameters={type: "order"
           type: "boolean",
           description: "Enable cross-partition queries. Set to true unless querying within a single partition key value.",
           default: true
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id", "query"]
     }
@@ -115,7 +146,7 @@ THIS TOOL IS BEST FOR:
 - Filtering by partition key for performance
 - Getting the most recent or oldest documents using order_by
 
-Example: mcp_get_documents({container_id: 'users', limit: 10, order_by: '_ts', order_direction: 'DESC'})
+Example: mcp_get_documents({container_id: 'users', limit: 10, order_by: '_ts', order_direction: 'DESC', connection_id: 'athlete'})
 Example: mcp_get_documents({container_id: 'users', limit: 50, filter_conditions: {status: 'active'}})`,
     inputSchema: {
       type: "object",
@@ -146,7 +177,8 @@ Example: mcp_get_documents({container_id: 'users', limit: 50, filter_conditions:
           enum: ["ASC", "DESC"],
           description: "Sort direction: 'ASC' for ascending (oldest first), 'DESC' for descending (newest first). Default: 'ASC'",
           default: "ASC"
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id"]
     }
@@ -160,7 +192,7 @@ Example: mcp_get_documents({container_id: 'users', limit: 50, filter_conditions:
 IMPORTANT: Both document_id and partition_key are required for a point read in CosmosDB.
 The partition_key type must match your container's partition key type.
 
-Example: mcp_get_document_by_id({container_id: 'users', document_id: 'user-123', partition_key: 'user-123'})`,
+Example: mcp_get_document_by_id({container_id: 'users', document_id: 'user-123', partition_key: 'user-123', connection_id: 'athlete'})`,
     inputSchema: {
       type: "object",
       properties: {
@@ -175,7 +207,8 @@ Example: mcp_get_document_by_id({container_id: 'users', document_id: 'user-123',
         partition_key: {
           type: ["string", "number", "boolean"],
           description: "The partition key value for the document. Must match the container's partition key path value."
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id", "document_id", "partition_key"]
     }
@@ -196,7 +229,8 @@ Example: mcp_get_document_by_id({container_id: 'users', document_id: 'user-123',
           type: "number",
           description: "Number of documents to sample for analysis (default: 100)",
           default: 100
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id"]
     }
@@ -215,7 +249,8 @@ REQUIREMENTS:
 Example: mcp_create_document({
   container_id: 'users',
   document: {id: 'user-456', email: 'test@example.com', status: 'active'},
-  partition_key: 'user-456'
+  partition_key: 'user-456',
+  connection_id: 'athlete'
 })`,
     inputSchema: {
       type: "object",
@@ -231,7 +266,8 @@ Example: mcp_create_document({
         partition_key: {
           type: ["string", "number", "boolean"],
           description: "The partition key value for the document"
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id", "document", "partition_key"]
     }
@@ -249,7 +285,8 @@ Example: mcp_update_document({
   container_id: 'users',
   document_id: 'user-456',
   document: {id: 'user-456', email: 'new@example.com', status: 'inactive'},
-  partition_key: 'user-456'
+  partition_key: 'user-456',
+  connection_id: 'athlete'
 })`,
     inputSchema: {
       type: "object",
@@ -269,7 +306,8 @@ Example: mcp_update_document({
         partition_key: {
           type: ["string", "number", "boolean"],
           description: "The partition key value for the document"
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id", "document_id", "document", "partition_key"]
     }
@@ -285,7 +323,8 @@ WARNING: This operation is irreversible. The document will be permanently delete
 Example: mcp_delete_document({
   container_id: 'users',
   document_id: 'user-456',
-  partition_key: 'user-456'
+  partition_key: 'user-456',
+  connection_id: 'athlete'
 })`,
     inputSchema: {
       type: "object",
@@ -301,7 +340,8 @@ Example: mcp_delete_document({
         partition_key: {
           type: ["string", "number", "boolean"],
           description: "The partition key value for the document"
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id", "document_id", "partition_key"]
     }
@@ -318,7 +358,8 @@ If it doesn't exist, a new document will be created.
 Example: mcp_upsert_document({
   container_id: 'users',
   document: {id: 'user-456', email: 'test@example.com', lastUpdated: '2024-01-15'},
-  partition_key: 'user-456'
+  partition_key: 'user-456',
+  connection_id: 'athlete'
 })`,
     inputSchema: {
       type: "object",
@@ -334,7 +375,8 @@ Example: mcp_upsert_document({
         partition_key: {
           type: ["string", "number", "boolean"],
           description: "The partition key value for the document"
-        }
+        },
+        ...connectionIdProperty
       },
       required: ["container_id", "document", "partition_key"]
     }
