@@ -10,12 +10,11 @@
 [![Coverage Status](https://img.shields.io/codecov/c/github/hendrickcastro/MCPCosmosDB)](https://codecov.io/gh/hendrickcastro/MCPCosmosDB)
 [![Azure CosmosDB](https://img.shields.io/badge/Azure-CosmosDB-blue)](https://azure.microsoft.com/services/cosmos-db/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-purple)](https://github.com/modelcontextprotocol/sdk)
-[![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-purple)](https://github.com/modelcontextprotocol/sdk)
 [![Claude Desktop](https://img.shields.io/badge/Claude-Desktop-orange)](https://claude.ai/desktop)
 [![Cursor IDE](https://img.shields.io/badge/Cursor-IDE-green)](https://cursor.sh/)
 [![Trae AI](https://img.shields.io/badge/Trae%20AI-IDE-blue)](https://trae.ai/)
 
-A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** database operations. This server provides 8 powerful tools for document database analysis, container discovery, and data querying through the MCP protocol.
+A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** database operations. This server provides **12 powerful tools** for document database analysis, container discovery, data querying, and CRUD operations through the MCP protocol.
 
 ## 🚀 Quick Start
 
@@ -33,11 +32,20 @@ A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** d
 | `OCONNSTRING` | CosmosDB connection string from Azure Portal | `AccountEndpoint=https://...;AccountKey=...;` |
 | `COSMOS_DATABASE_ID` | Database ID to connect to | `MyDatabase` |
 
+### 🔒 Security Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_ALLOW_MODIFICATIONS` | Enable/disable write operations (create, update, delete, upsert) | `false` |
+
+> ⚠️ **IMPORTANT**: By default, all write operations are **DISABLED** for safety. Set `DB_ALLOW_MODIFICATIONS=true` only when you need to perform write operations.
+
 ### Installation Options
 
 #### Option 1: NPX (Recommended)
 No installation needed! Configure your MCP client:
 
+**Read-Only Mode (Default - Safe):**
 ```json
 {
   "mcpServers": {
@@ -47,6 +55,23 @@ No installation needed! Configure your MCP client:
       "env": {
         "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
         "COSMOS_DATABASE_ID": "your-database-name"
+      }
+    }
+  }
+}
+```
+
+**With Write Operations Enabled:**
+```json
+{
+  "mcpServers": {
+    "mcp-cosmosdb": {
+      "command": "npx",
+      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
+      "env": {
+        "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
+        "COSMOS_DATABASE_ID": "your-database-name",
+        "DB_ALLOW_MODIFICATIONS": "true"
       }
     }
   }
@@ -76,33 +101,31 @@ Then configure with local path:
 }
 ```
 
-## 🛠️ Available Tools
+## 🛠️ Available Tools (12 Total)
 
-MCP CosmosDB provides 8 comprehensive tools for Azure CosmosDB operations:
+### 📖 Read Operations (Always Available)
 
-### 1. 🗄️ **List Databases** - `mcp_list_databases`
-List all databases in the CosmosDB account.
+| Tool | Description |
+|------|-------------|
+| `mcp_list_databases` | List all databases in the CosmosDB account |
+| `mcp_list_containers` | List all containers in the current database |
+| `mcp_get_container_definition` | Get detailed container configuration (partition key, indexing policy, throughput) |
+| `mcp_get_container_stats` | Get container statistics (document count, size, partition distribution) |
+| `mcp_execute_query` | Execute SQL queries with parameters and performance metrics |
+| `mcp_get_documents` | Retrieve documents with optional filtering |
+| `mcp_get_document_by_id` | Get a specific document by ID and partition key |
+| `mcp_analyze_schema` | Analyze document schema structure in containers |
 
-### 2. 📦 **List Containers** - `mcp_list_containers`
-List all containers in the current database.
+### ✏️ Write Operations (Require `DB_ALLOW_MODIFICATIONS=true`)
 
-### 3. 📋 **Container Information** - `mcp_container_info`
-Get detailed information about a specific container including partition key, indexing policy, and throughput settings.
+| Tool | Description |
+|------|-------------|
+| `mcp_create_document` | Create a new document in a container |
+| `mcp_update_document` | Update (replace) an existing document |
+| `mcp_delete_document` | Delete a document from a container |
+| `mcp_upsert_document` | Create or update a document (upsert operation) |
 
-### 4. 📊 **Container Statistics** - `mcp_container_stats`
-Get statistics about a container including document count, size estimation, and partition key distribution.
-
-### 5. 🔍 **Execute SQL Query** - `mcp_execute_query`
-Execute SQL queries against CosmosDB containers with parameters and performance metrics.
-
-### 6. 📄 **Get Documents** - `mcp_get_documents`
-Retrieve documents from containers with optional filtering and partition key targeting.
-
-### 7. 🎯 **Get Document by ID** - `mcp_get_document_by_id`
-Retrieve a specific document by its ID and partition key.
-
-### 8. 🏗️ **Schema Analysis** - `mcp_analyze_schema`
-Analyze document schema structure in containers to understand data patterns.
+> 🛡️ **Security Note**: Write operations are blocked by default. If `DB_ALLOW_MODIFICATIONS` is not set to `true`, these operations will return an error message explaining how to enable them.
 
 ## 📋 Usage Examples
 
@@ -111,13 +134,13 @@ Analyze document schema structure in containers to understand data patterns.
 // List all containers
 const containers = await mcp_list_containers();
 
-// Get container information
-const containerInfo = await mcp_container_info({ 
+// Get container definition (partition key, indexing policy)
+const containerDef = await mcp_get_container_definition({ 
   container_id: "users" 
 });
 
 // Get container statistics
-const stats = await mcp_container_stats({ 
+const stats = await mcp_get_container_stats({ 
   container_id: "users",
   sample_size: 1000
 });
@@ -125,25 +148,25 @@ const stats = await mcp_container_stats({
 
 ### Querying Data
 ```typescript
-// Execute SQL query
+// Execute SQL query with CosmosDB syntax
 const result = await mcp_execute_query({
   container_id: "products",
   query: "SELECT * FROM c WHERE c.category = @category AND c.price > @minPrice",
-  parameters: { "category": "electronics", "minPrice": 100 },
+  parameters: { category: "electronics", minPrice: 100 },
   max_items: 50
 });
 
-// Get documents with filters
+// Get documents with simple filters
 const documents = await mcp_get_documents({
   container_id: "orders",
-  filter_conditions: { "status": "completed", "year": 2024 },
+  filter_conditions: { status: "completed", year: 2024 },
   limit: 100
 });
 ```
 
 ### Document Operations
 ```typescript
-// Get specific document
+// Get specific document by ID
 const document = await mcp_get_document_by_id({
   container_id: "users",
   document_id: "user-123",
@@ -154,6 +177,52 @@ const document = await mcp_get_document_by_id({
 const schema = await mcp_analyze_schema({
   container_id: "products",
   sample_size: 500
+});
+```
+
+### CRUD Operations (Requires `DB_ALLOW_MODIFICATIONS=true`)
+```typescript
+// Create a new document
+const created = await mcp_create_document({
+  container_id: "users",
+  document: {
+    id: "user-456",
+    email: "user@example.com",
+    name: "John Doe",
+    status: "active"
+  },
+  partition_key: "user-456"
+});
+
+// Update a document (full replacement)
+const updated = await mcp_update_document({
+  container_id: "users",
+  document_id: "user-456",
+  document: {
+    id: "user-456",
+    email: "newemail@example.com",
+    name: "John Doe",
+    status: "inactive"
+  },
+  partition_key: "user-456"
+});
+
+// Upsert a document (create or update)
+const upserted = await mcp_upsert_document({
+  container_id: "users",
+  document: {
+    id: "user-789",
+    email: "another@example.com",
+    name: "Jane Doe"
+  },
+  partition_key: "user-789"
+});
+
+// Delete a document
+const deleted = await mcp_delete_document({
+  container_id: "users",
+  document_id: "user-456",
+  partition_key: "user-456"
 });
 ```
 
@@ -168,7 +237,7 @@ const schema = await mcp_analyze_schema({
 
 ### Configuration Examples
 
-**Production Environment:**
+**Production Environment (Read-Only):**
 ```json
 {
   "env": {
@@ -178,24 +247,24 @@ const schema = await mcp_analyze_schema({
 }
 ```
 
+**Development Environment (With Write Access):**
+```json
+{
+  "env": {
+    "OCONNSTRING": "AccountEndpoint=https://mycompany-dev.documents.azure.com:443/;AccountKey=your-dev-key;",
+    "COSMOS_DATABASE_ID": "DevDB",
+    "DB_ALLOW_MODIFICATIONS": "true"
+  }
+}
+```
+
 **CosmosDB Emulator (Local):**
 ```json
 {
   "env": {
     "OCONNSTRING": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;",
-    "COSMOS_DATABASE_ID": "TestDB"
-  }
-}
-```
-
-**Advanced Configuration:**
-```json
-{
-  "env": {
-    "OCONNSTRING": "AccountEndpoint=https://mycompany.documents.azure.com:443/;AccountKey=your-key;",
-    "COSMOS_DATABASE_ID": "MyDatabase",
-    "COSMOS_MAX_RETRY_ATTEMPTS": "15",
-    "COSMOS_MAX_RETRY_WAIT_TIME": "60000"
+    "COSMOS_DATABASE_ID": "TestDB",
+    "DB_ALLOW_MODIFICATIONS": "true"
   }
 }
 ```
@@ -211,6 +280,10 @@ const schema = await mcp_analyze_schema({
 - **Cross partition query required**: Set `enable_cross_partition: true` in query parameters
 - **Query timeout**: Reduce sample sizes or add specific filters
 - **Partition key required**: Specify partition_key for single-partition operations
+
+**Write Operation Blocked:**
+- **Error: "Database modifications are disabled"**: Set `DB_ALLOW_MODIFICATIONS=true` in your environment configuration
+- This is a safety feature - write operations are disabled by default
 
 **CosmosDB Emulator:**
 1. Install Azure CosmosDB Emulator
@@ -233,9 +306,9 @@ npm start         # Development mode
 src/
 ├── tools/                    # Tool implementations
 │   ├── containerAnalysis.ts  # Container operations
-│   ├── dataOperations.ts     # Data queries
+│   ├── dataOperations.ts     # Data queries & CRUD
 │   └── types.ts              # Type definitions
-├── db.ts                     # CosmosDB connection
+├── db.ts                     # CosmosDB connection & security
 ├── server.ts                 # MCP server setup
 └── tools.ts                  # Tool definitions
 ```
@@ -243,6 +316,7 @@ src/
 **Key Features:**
 - ⚡ Connection management with retry logic
 - 🛡️ Comprehensive error handling
+- 🔒 Write operation protection (DB_ALLOW_MODIFICATIONS)
 - 📊 Performance metrics and request charges
 - 🔧 Environment-based configuration
 - 📋 Intelligent schema analysis
@@ -250,10 +324,11 @@ src/
 ## 📝 Important Notes
 
 - **Container IDs**: Use exact names as in CosmosDB
-- **Partition Keys**: Required for optimal performance
+- **Partition Keys**: Required for optimal performance and CRUD operations
 - **Cross-Partition Queries**: Can be expensive; use filters
 - **Request Charges**: Monitor RU consumption
 - **Security**: Store connection strings securely
+- **Write Protection**: Enable `DB_ALLOW_MODIFICATIONS` only when needed
 
 ## 🤝 Contributing
 
@@ -276,7 +351,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 **Technology:** `typescript` `nodejs` `npm-package` `cli-tool` `database-client` `nosql-client` `database-sdk` `rest-api` `json-api` `database-connector`
 
-**Features:** `container-analysis` `document-operations` `sql-queries` `schema-analysis` `query-execution` `database-search` `data-exploration` `database-insights` `partition-management` `throughput-analysis`
+**Features:** `container-analysis` `document-operations` `sql-queries` `schema-analysis` `query-execution` `database-search` `data-exploration` `database-insights` `partition-management` `throughput-analysis` `crud-operations` `document-crud`
 
 **Use Cases:** `database-development` `data-science` `business-intelligence` `database-migration` `schema-documentation` `performance-analysis` `data-governance` `database-monitoring` `troubleshooting` `automation`
 

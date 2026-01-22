@@ -68,4 +68,45 @@ export interface NestedStructureAnalysis {
   type: 'object' | 'array';
   frequency: number;
   properties?: PropertyAnalysis[];
-} 
+}
+
+// CRUD Operation types
+export type PartitionKeyValue = string | number | boolean;
+
+export interface CreateDocumentArgs {
+  container_id: string;
+  document: Record<string, any>;
+  partition_key: PartitionKeyValue;
+}
+
+export interface UpdateDocumentArgs {
+  container_id: string;
+  document_id: string;
+  document: Record<string, any>;
+  partition_key: PartitionKeyValue;
+}
+
+export interface DeleteDocumentArgs {
+  container_id: string;
+  document_id: string;
+  partition_key: PartitionKeyValue;
+}
+
+export interface UpsertDocumentArgs {
+  container_id: string;
+  document: Record<string, any>;
+  partition_key: PartitionKeyValue;
+}
+
+export interface DocumentOperationResult {
+  id: string;
+  _etag?: string;
+  _ts?: number;
+  requestCharge: number;
+}
+
+export interface DeleteOperationResult {
+  deleted: boolean;
+  id: string;
+  requestCharge: number;
+}

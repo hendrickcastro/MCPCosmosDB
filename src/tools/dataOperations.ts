@@ -1,5 +1,18 @@
-import { getContainer } from '../db.js';
-import { ToolResult, DocumentInfo, QueryStats, SchemaAnalysis, PropertyAnalysis } from './types.js';
+import { getContainer, validateModificationAllowed } from '../db.js';
+import { 
+  ToolResult, 
+  DocumentInfo, 
+  QueryStats, 
+  SchemaAnalysis, 
+  PropertyAnalysis,
+  CreateDocumentArgs,
+  UpdateDocumentArgs,
+  DeleteDocumentArgs,
+  UpsertDocumentArgs,
+  DocumentOperationResult,
+  DeleteOperationResult,
+  PartitionKeyValue
+} from './types.js';
 
 // Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
 const log = (message: string): void => {
@@ -56,7 +69,7 @@ export const mcp_execute_query = async (args: {
 export const mcp_get_documents = async (args: { 
   container_id: string; 
   limit?: number;
-  partition_key?: string;
+  partition_key?: PartitionKeyValue;
   filter_conditions?: Record<string, any>;
 }): Promise<ToolResult<DocumentInfo[]>> => {
   const { container_id, limit = 100, partition_key, filter_conditions } = args;
@@ -65,28 +78,30 @@ export const mcp_get_documents = async (args: {
   try {
     const container = getContainer(container_id);
 
-    // Build query
-    let query = `SELECT * FROM c`;
+    // Build query with proper TOP clause (not subquery)
+    const whereClauses: string[] = [];
     const parameters: Array<{ name: string; value: any }> = [];
 
     // Add filter conditions
     if (filter_conditions && Object.keys(filter_conditions).length > 0) {
-      const whereClauses = Object.entries(filter_conditions).map(([key, value], index) => {
+      Object.entries(filter_conditions).forEach(([key, value], index) => {
         const paramName = `@param${index}`;
         parameters.push({ name: paramName, value });
-        return `c.${key} = ${paramName}`;
+        whereClauses.push(`c.${key} = ${paramName}`);
       });
-      query += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
-    // Add limit
-    query = `SELECT TOP ${limit} * FROM (${query})`;
+    // Build final query with TOP at the right place
+    let query = `SELECT TOP ${limit} * FROM c`;
+    if (whereClauses.length > 0) {
+      query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
 
     const querySpec = { query, parameters };
 
     // Query options
     const options: any = { maxItemCount: limit };
-    if (partition_key) {
+    if (partition_key !== undefined) {
       options.partitionKey = partition_key;
     }
 
@@ -105,18 +120,197 @@ export const mcp_get_documents = async (args: {
 export const mcp_get_document_by_id = async (args: { 
   container_id: string; 
   document_id: string; 
-  partition_key: string; 
+  partition_key: PartitionKeyValue; 
 }): Promise<ToolResult<DocumentInfo>> => {
   const { container_id, document_id, partition_key } = args;
   log(`Executing mcp_get_document_by_id with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
-    const { resource: document } = await container.item(document_id, partition_key).read();
+    const { resource: document, statusCode } = await container.item(document_id, partition_key).read();
+
+    if (!document) {
+      return { success: false, error: `Document with id '${document_id}' not found` };
+    }
 
     return { success: true, data: document };
   } catch (error: any) {
     log(`Error in mcp_get_document_by_id for document ${document_id}: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Create a new document in a container
+ */
+export const mcp_create_document = async (args: CreateDocumentArgs): Promise<ToolResult<DocumentOperationResult>> => {
+  const { container_id, document, partition_key } = args;
+  log(`Executing mcp_create_document with: ${JSON.stringify({ container_id, document_id: document.id, partition_key })}`);
+
+  try {
+    // Validate modifications are allowed
+    validateModificationAllowed('create_document');
+    
+    // Validate document has an id
+    if (!document.id) {
+      return { success: false, error: "Document must have an 'id' field" };
+    }
+
+    const container = getContainer(container_id);
+    
+    const { resource: createdDocument, requestCharge } = await container.items.create(
+      document
+    );
+
+    if (!createdDocument) {
+      return { success: false, error: "Failed to create document - no response from CosmosDB" };
+    }
+
+    return { 
+      success: true, 
+      data: {
+        id: createdDocument.id,
+        _etag: createdDocument._etag,
+        _ts: createdDocument._ts,
+        requestCharge: requestCharge || 0
+      }
+    };
+  } catch (error: any) {
+    log(`Error in mcp_create_document for container ${container_id}: ${error.message}`);
+    
+    // Provide more helpful error messages
+    if (error.code === 409) {
+      return { success: false, error: `Document with id '${document.id}' already exists in this partition` };
+    }
+    
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Update (replace) an existing document in a container
+ */
+export const mcp_update_document = async (args: UpdateDocumentArgs): Promise<ToolResult<DocumentOperationResult>> => {
+  const { container_id, document_id, document, partition_key } = args;
+  log(`Executing mcp_update_document with: ${JSON.stringify({ container_id, document_id, partition_key })}`);
+
+  try {
+    // Validate modifications are allowed
+    validateModificationAllowed('update_document');
+    
+    // Ensure document has the correct id
+    if (document.id && document.id !== document_id) {
+      return { success: false, error: "Document 'id' field must match 'document_id' parameter" };
+    }
+    
+    // Ensure id is set
+    const documentToUpdate = { ...document, id: document_id };
+
+    const container = getContainer(container_id);
+    
+    const { resource: updatedDocument, requestCharge } = await container
+      .item(document_id, partition_key)
+      .replace(documentToUpdate);
+
+    if (!updatedDocument) {
+      return { success: false, error: "Failed to update document - no response from CosmosDB" };
+    }
+
+    return { 
+      success: true, 
+      data: {
+        id: updatedDocument.id,
+        _etag: updatedDocument._etag,
+        _ts: updatedDocument._ts,
+        requestCharge: requestCharge || 0
+      }
+    };
+  } catch (error: any) {
+    log(`Error in mcp_update_document for document ${document_id}: ${error.message}`);
+    
+    // Provide more helpful error messages
+    if (error.code === 404) {
+      return { success: false, error: `Document with id '${document_id}' not found` };
+    }
+    
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Delete a document from a container
+ */
+export const mcp_delete_document = async (args: DeleteDocumentArgs): Promise<ToolResult<DeleteOperationResult>> => {
+  const { container_id, document_id, partition_key } = args;
+  log(`Executing mcp_delete_document with: ${JSON.stringify(args)}`);
+
+  try {
+    // Validate modifications are allowed
+    validateModificationAllowed('delete_document');
+    
+    const container = getContainer(container_id);
+    
+    const { requestCharge } = await container
+      .item(document_id, partition_key)
+      .delete();
+
+    return { 
+      success: true, 
+      data: {
+        deleted: true,
+        id: document_id,
+        requestCharge: requestCharge || 0
+      }
+    };
+  } catch (error: any) {
+    log(`Error in mcp_delete_document for document ${document_id}: ${error.message}`);
+    
+    // Provide more helpful error messages
+    if (error.code === 404) {
+      return { success: false, error: `Document with id '${document_id}' not found` };
+    }
+    
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Create or update a document (upsert operation)
+ */
+export const mcp_upsert_document = async (args: UpsertDocumentArgs): Promise<ToolResult<DocumentOperationResult>> => {
+  const { container_id, document, partition_key } = args;
+  log(`Executing mcp_upsert_document with: ${JSON.stringify({ container_id, document_id: document.id, partition_key })}`);
+
+  try {
+    // Validate modifications are allowed
+    validateModificationAllowed('upsert_document');
+    
+    // Validate document has an id
+    if (!document.id) {
+      return { success: false, error: "Document must have an 'id' field" };
+    }
+
+    const container = getContainer(container_id);
+    
+    const { resource: upsertedDocument, requestCharge } = await container.items.upsert(
+      document
+    );
+
+    if (!upsertedDocument) {
+      return { success: false, error: "Failed to upsert document - no response from CosmosDB" };
+    }
+
+    return { 
+      success: true, 
+      data: {
+        id: upsertedDocument.id,
+        _etag: upsertedDocument._etag,
+        _ts: upsertedDocument._ts,
+        requestCharge: requestCharge || 0
+      }
+    };
+  } catch (error: any) {
+    log(`Error in mcp_upsert_document for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
@@ -128,7 +322,7 @@ export const mcp_analyze_schema = async (args: {
   container_id: string; 
   sample_size?: number; 
 }): Promise<ToolResult<SchemaAnalysis>> => {
-  const { container_id, sample_size = 1000 } = args;
+  const { container_id, sample_size = 100 } = args;
   log(`Executing mcp_analyze_schema with: ${JSON.stringify(args)}`);
 
   try {

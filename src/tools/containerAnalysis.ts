@@ -60,11 +60,11 @@ export const mcp_list_containers = async (): Promise<ToolResult<ContainerInfo[]>
 };
 
 /**
- * Get detailed information about a specific container
+ * Get detailed information about a specific container (definition, partition key, indexing policy)
  */
-export const mcp_container_info = async (args: { container_id: string }): Promise<ToolResult<ContainerInfo & { throughputInfo?: any }>> => {
+export const mcp_get_container_definition = async (args: { container_id: string }): Promise<ToolResult<ContainerInfo & { throughputInfo?: any }>> => {
   const { container_id } = args;
-  log(`Executing mcp_container_info with: ${JSON.stringify(args)}`);
+  log(`Executing mcp_get_container_definition with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
@@ -100,17 +100,17 @@ export const mcp_container_info = async (args: { container_id: string }): Promis
 
     return { success: true, data: containerInfo };
   } catch (error: any) {
-    log(`Error in mcp_container_info for container ${container_id}: ${error.message}`);
+    log(`Error in mcp_get_container_definition for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
 
 /**
- * Get basic statistics about a container
+ * Get statistical information about a container (document count, size, partition distribution)
  */
-export const mcp_container_stats = async (args: { container_id: string; sample_size?: number }): Promise<ToolResult<ContainerStats>> => {
+export const mcp_get_container_stats = async (args: { container_id: string; sample_size?: number }): Promise<ToolResult<ContainerStats>> => {
   const { container_id, sample_size = 1000 } = args;
-  log(`Executing mcp_container_stats with: ${JSON.stringify(args)}`);
+  log(`Executing mcp_get_container_stats with: ${JSON.stringify(args)}`);
 
   try {
     const container = getContainer(container_id);
@@ -169,7 +169,7 @@ export const mcp_container_stats = async (args: { container_id: string; sample_s
 
     return { success: true, data: containerStats };
   } catch (error: any) {
-    log(`Error in mcp_container_stats for container ${container_id}: ${error.message}`);
+    log(`Error in mcp_get_container_stats for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };
   }
 };

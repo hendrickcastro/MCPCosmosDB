@@ -57,7 +57,7 @@ function prepareDataForResponse(data: any): string {
 // @ts-ignore - Bypass TypeScript errors from the SDK's types
 const server = new Server({
     name: "cosmosdb-proxy-server",
-    version: "1.0.0"
+    version: "1.1.0"
 }, {
     capabilities: {
         tools: {}
@@ -75,36 +75,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const toolName = request.params.name;
     const input = request.params.arguments;
-    const handler = (toolHandlers as { [key: string]: (args: any) => Promise<any> })[toolName];
 
-    if (!handler) {
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Error: Tool '${toolName}' not found.`
-                }
-            ],
-            isError: true
-        };
-    }
+    logToFile(`[DEBUG] Tool called: ${toolName}, input: ${JSON.stringify(input)}`);
 
     try {
         await connectCosmosDB();
         let result;
+        
         switch (toolName) {
+            // Database and Container listing
             case 'mcp_list_databases':
                 result = await toolHandlers.mcp_list_databases();
                 break;
             case 'mcp_list_containers':
                 result = await toolHandlers.mcp_list_containers();
                 break;
-            case 'mcp_container_info':
-                result = await toolHandlers.mcp_container_info(input as any);
+            
+            // Container information
+            case 'mcp_get_container_definition':
+                result = await toolHandlers.mcp_get_container_definition(input as any);
                 break;
-            case 'mcp_container_stats':
-                result = await toolHandlers.mcp_container_stats(input as any);
+            case 'mcp_get_container_stats':
+                result = await toolHandlers.mcp_get_container_stats(input as any);
                 break;
+            
+            // Query and Read operations
             case 'mcp_execute_query':
                 result = await toolHandlers.mcp_execute_query(input as any);
                 break;
@@ -117,8 +112,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case 'mcp_analyze_schema':
                 result = await toolHandlers.mcp_analyze_schema(input as any);
                 break;
+            
+            // CRUD operations
+            case 'mcp_create_document':
+                result = await toolHandlers.mcp_create_document(input as any);
+                break;
+            case 'mcp_update_document':
+                result = await toolHandlers.mcp_update_document(input as any);
+                break;
+            case 'mcp_delete_document':
+                result = await toolHandlers.mcp_delete_document(input as any);
+                break;
+            case 'mcp_upsert_document':
+                result = await toolHandlers.mcp_upsert_document(input as any);
+                break;
+            
             default:
-                result = await handler(input);
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Error: Tool '${toolName}' not found. Available tools: ${MCP_COSMOSDB_TOOLS.map(t => t.name).join(', ')}`
+                        }
+                    ],
+                    isError: true
+                };
         }
 
         logToFile(`[DEBUG] Tool: ${toolName}, Success: ${result.success}`);
@@ -186,7 +204,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function runServer() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logToFile("=== CosmosDB MCP Proxy STARTED ===");
+    logToFile("=== CosmosDB MCP Proxy STARTED (v1.1.0) ===");
     log("CosmosDB MCP Proxy running on stdio");
 }
 

@@ -17,6 +17,29 @@ const parseBoolean = (value: string | undefined, defaultValue: boolean = false):
   return ['true', 'yes', '1', 'on'].includes(value.toLowerCase());
 };
 
+/**
+ * Check if database modifications are allowed.
+ * Controlled by DB_ALLOW_MODIFICATIONS environment variable.
+ * Default: false (read-only mode for safety)
+ */
+export const isModificationAllowed = (): boolean => {
+  return parseBoolean(process.env.DB_ALLOW_MODIFICATIONS, false);
+};
+
+/**
+ * Validate that modifications are allowed before performing write operations.
+ * Throws an error if modifications are not allowed.
+ */
+export const validateModificationAllowed = (operation: string): void => {
+  if (!isModificationAllowed()) {
+    throw new Error(
+      `Database modifications are disabled. ` +
+      `Operation '${operation}' was blocked. ` +
+      `Set DB_ALLOW_MODIFICATIONS=true in your environment to enable write operations.`
+    );
+  }
+};
+
 // Build CosmosDB configuration
 const buildConfig = () => {
   const connectionString = process.env.OCONNSTRING;
