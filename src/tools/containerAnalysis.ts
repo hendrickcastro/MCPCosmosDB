@@ -5,7 +5,7 @@ import { ToolResult, ContainerInfo, ContainerStats, DatabaseInfo } from './types
  * List all databases in the CosmosDB account
  */
 export const mcp_list_databases = async (): Promise<ToolResult<DatabaseInfo[]>> => {
-  console.log('Executing mcp_list_databases');
+  console.error('Executing mcp_list_databases');
 
   try {
     const database = getDatabase();
@@ -30,7 +30,7 @@ export const mcp_list_databases = async (): Promise<ToolResult<DatabaseInfo[]>> 
  * List all containers in the database
  */
 export const mcp_list_containers = async (): Promise<ToolResult<ContainerInfo[]>> => {
-  console.log('Executing mcp_list_containers');
+  console.error('Executing mcp_list_containers');
 
   try {
     const database = getDatabase();
@@ -59,7 +59,7 @@ export const mcp_list_containers = async (): Promise<ToolResult<ContainerInfo[]>
  */
 export const mcp_container_info = async (args: { container_id: string }): Promise<ToolResult<ContainerInfo & { throughputInfo?: any }>> => {
   const { container_id } = args;
-  console.log('Executing mcp_container_info with:', args);
+  console.error('Executing mcp_container_info with:', args);
 
   try {
     const container = getContainer(container_id);
@@ -74,7 +74,7 @@ export const mcp_container_info = async (args: { container_id: string }): Promis
       throughputInfo = offerResponse.resource;
     } catch (offerError) {
       // Throughput might not be defined for shared throughput containers
-      console.log('Could not read container throughput (might use shared database throughput)');
+      console.error('Could not read container throughput (might use shared database throughput)');
     }
 
     if (!containerDef) {
@@ -105,7 +105,7 @@ export const mcp_container_info = async (args: { container_id: string }): Promis
  */
 export const mcp_container_stats = async (args: { container_id: string; sample_size?: number }): Promise<ToolResult<ContainerStats>> => {
   const { container_id, sample_size = 1000 } = args;
-  console.log('Executing mcp_container_stats with:', args);
+  console.error('Executing mcp_container_stats with:', args);
 
   try {
     const container = getContainer(container_id);

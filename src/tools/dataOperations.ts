@@ -12,7 +12,7 @@ export const mcp_execute_query = async (args: {
   enable_cross_partition?: boolean;
 }): Promise<ToolResult<{ documents: any[]; stats: QueryStats }>> => {
   const { container_id, query, parameters, max_items = 100, enable_cross_partition = true } = args;
-  console.log('Executing mcp_execute_query with:', args);
+  console.error('Executing mcp_execute_query with:', args);
 
   try {
     const container = getContainer(container_id);
@@ -55,7 +55,7 @@ export const mcp_get_documents = async (args: {
   filter_conditions?: Record<string, any>;
 }): Promise<ToolResult<DocumentInfo[]>> => {
   const { container_id, limit = 100, partition_key, filter_conditions } = args;
-  console.log('Executing mcp_get_documents with:', args);
+  console.error('Executing mcp_get_documents with:', args);
 
   try {
     const container = getContainer(container_id);
@@ -103,7 +103,7 @@ export const mcp_get_document_by_id = async (args: {
   partition_key: string; 
 }): Promise<ToolResult<DocumentInfo>> => {
   const { container_id, document_id, partition_key } = args;
-  console.log('Executing mcp_get_document_by_id with:', args);
+  console.error('Executing mcp_get_document_by_id with:', args);
 
   try {
     const container = getContainer(container_id);
@@ -124,7 +124,7 @@ export const mcp_analyze_schema = async (args: {
   sample_size?: number; 
 }): Promise<ToolResult<SchemaAnalysis>> => {
   const { container_id, sample_size = 1000 } = args;
-  console.log('Executing mcp_analyze_schema with:', args);
+  console.error('Executing mcp_analyze_schema with:', args);
 
   try {
     const container = getContainer(container_id);

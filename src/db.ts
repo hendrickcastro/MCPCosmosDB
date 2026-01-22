@@ -48,7 +48,7 @@ const buildConfig = () => {
 export const connectCosmosDB = async (): Promise<void> => {
   try {
     if (cosmosClient) {
-      console.log('CosmosDB client already connected');
+      console.error('CosmosDB client already connected');
       return;
     }
 
@@ -68,7 +68,7 @@ export const connectCosmosDB = async (): Promise<void> => {
     // Test connection by reading database info
     await database.read();
     
-    console.log(`Successfully connected to CosmosDB database: ${databaseId}`);
+    console.error(`Successfully connected to CosmosDB database: ${databaseId}`);
   } catch (error: any) {
     console.error('Error connecting to CosmosDB:', error.message);
     throw error;
@@ -103,7 +103,7 @@ export const closeConnection = async (): Promise<void> => {
     await cosmosClient.dispose();
     cosmosClient = null;
     database = null;
-    console.log('CosmosDB connection closed');
+    console.error('CosmosDB connection closed');
   }
 };
 
