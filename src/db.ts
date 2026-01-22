@@ -5,6 +5,8 @@ dotenv.config();
 
 let cosmosClient: CosmosClient | null = null;
 let database: Database | null = null;
+let currentEndpoint: string | null = null;
+let currentDatabaseId: string | null = null;
 
 // Helper function to write to stderr (MCP compliant - keeps stdout clean for JSON-RPC)
 const log = (message: string): void => {
@@ -72,17 +74,43 @@ const buildConfig = () => {
   };
 };
 
-// Connect to CosmosDB
+// Connect to CosmosDB - Always creates a fresh connection based on current environment
 export const connectCosmosDB = async (): Promise<void> => {
   try {
-    if (cosmosClient) {
-      log('CosmosDB client already connected');
+    const config = buildConfig();
+    const databaseId = process.env.COSMOS_DATABASE_ID || 'defaultdb';
+    
+    log(`[CONNECT] PID: ${process.pid}`);
+    log(`[CONNECT] ENV OCONNSTRING: ${process.env.OCONNSTRING?.substring(0, 80)}...`);
+    log(`[CONNECT] ENV COSMOS_DATABASE_ID: ${process.env.COSMOS_DATABASE_ID}`);
+    log(`[CONNECT] Parsed endpoint: ${config.endpoint}`);
+    log(`[CONNECT] Requested DB: ${databaseId}`);
+    log(`[CONNECT] Current: ${currentEndpoint || 'none'} / ${currentDatabaseId || 'none'}`);
+    
+    // Always reconnect if endpoint or database is different
+    const needsReconnect = !cosmosClient || 
+                           currentEndpoint !== config.endpoint || 
+                           currentDatabaseId !== databaseId;
+    
+    if (!needsReconnect) {
+      log(`[CONNECT] Reusing existing connection`);
       return;
     }
-
-    const config = buildConfig();
     
-    // Create CosmosClient
+    // Close existing connection if any
+    if (cosmosClient) {
+      log(`[CONNECT] Closing previous connection to ${currentEndpoint}/${currentDatabaseId}`);
+      try {
+        await cosmosClient.dispose();
+      } catch (e) {
+        log(`[CONNECT] Warning disposing client: ${e}`);
+      }
+      cosmosClient = null;
+      database = null;
+    }
+    
+    // Create new CosmosClient
+    log(`[CONNECT] Creating new connection to ${config.endpoint}/${databaseId}`);
     cosmosClient = new CosmosClient({
       endpoint: config.endpoint,
       key: config.key,
@@ -90,15 +118,18 @@ export const connectCosmosDB = async (): Promise<void> => {
     });
 
     // Get database reference
-    const databaseId = process.env.COSMOS_DATABASE_ID || 'defaultdb';
     database = cosmosClient.database(databaseId);
 
     // Test connection by reading database info
     await database.read();
     
-    log(`Successfully connected to CosmosDB database: ${databaseId}`);
+    // Store current connection info
+    currentEndpoint = config.endpoint;
+    currentDatabaseId = databaseId;
+    
+    log(`[CONNECT] Successfully connected to: ${config.endpoint} / ${databaseId}`);
   } catch (error: any) {
-    log(`Error connecting to CosmosDB: ${error.message}`);
+    log(`[CONNECT] Error: ${error.message}`);
     throw error;
   }
 };

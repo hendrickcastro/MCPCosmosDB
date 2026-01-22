@@ -57,7 +57,7 @@ function prepareDataForResponse(data: any): string {
 // @ts-ignore - Bypass TypeScript errors from the SDK's types
 const server = new Server({
     name: "cosmosdb-proxy-server",
-    version: "1.2.1"
+    version: "1.2.3"
 }, {
     capabilities: {
         tools: {}
@@ -204,7 +204,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function runServer() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logToFile("=== CosmosDB MCP Proxy STARTED (v1.2.1) ===");
+    logToFile("=== CosmosDB MCP Proxy STARTED (v1.2.3) ===");
     log("CosmosDB MCP Proxy running on stdio");
 }
 
