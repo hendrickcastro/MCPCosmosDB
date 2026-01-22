@@ -60,7 +60,7 @@ export const MCP_COSMOSDB_TOOLS = [
 
   // 5. Query Execution - Advanced SQL queries
   {
-    name: "mcp_execute_query",
+    name: "mcp_cosmos_query",
     description: `Execute a CosmosDB SQL query against a container. Use this for complex queries with JOINs, aggregations, or custom SQL syntax.
 
 COSMOSDB SQL SYNTAX EXAMPLES:
@@ -69,6 +69,7 @@ COSMOSDB SQL SYNTAX EXAMPLES:
 - Aggregation: SELECT VALUE COUNT(1) FROM c
 - Array contains: SELECT * FROM c WHERE ARRAY_CONTAINS(c.tags, 'urgent')
 - Nested: SELECT * FROM c WHERE c.address.city = 'Madrid'
+- ORDER BY: SELECT * FROM c ORDER BY c._ts DESC
 
 PARAMETERS: Use @paramName syntax and provide values in the 'parameters' object.
 Example: query="SELECT * FROM c WHERE c.type = @type", parameters={type: "order"}`,
@@ -105,14 +106,16 @@ Example: query="SELECT * FROM c WHERE c.type = @type", parameters={type: "order"
   // 6. Get Documents - Simple filtering without SQL
   {
     name: "mcp_get_documents",
-    description: `Get documents from a container with simple filters. Use this for basic queries without complex SQL syntax.
+    description: `Get documents from a container with simple filters and ordering. Use this for basic queries without complex SQL syntax.
 
-FOR COMPLEX QUERIES: Use mcp_execute_query instead.
+FOR COMPLEX QUERIES: Use mcp_cosmos_query instead.
 THIS TOOL IS BEST FOR:
 - Getting all documents (with limit)
 - Simple equality filters on fields
 - Filtering by partition key for performance
+- Getting the most recent or oldest documents using order_by
 
+Example: mcp_get_documents({container_id: 'users', limit: 10, order_by: '_ts', order_direction: 'DESC'})
 Example: mcp_get_documents({container_id: 'users', limit: 50, filter_conditions: {status: 'active'}})`,
     inputSchema: {
       type: "object",
@@ -133,6 +136,16 @@ Example: mcp_get_documents({container_id: 'users', limit: 50, filter_conditions:
         filter_conditions: {
           type: "object",
           description: "Simple equality filters as key-value pairs. Example: {status: 'active', type: 'premium'}"
+        },
+        order_by: {
+          type: "string",
+          description: "Field name to order results by. Use '_ts' for timestamp ordering (most recent/oldest). Example: '_ts', 'creationDate', 'name'"
+        },
+        order_direction: {
+          type: "string",
+          enum: ["ASC", "DESC"],
+          description: "Sort direction: 'ASC' for ascending (oldest first), 'DESC' for descending (newest first). Default: 'ASC'",
+          default: "ASC"
         }
       },
       required: ["container_id"]

@@ -64,15 +64,17 @@ export const mcp_execute_query = async (args: {
 };
 
 /**
- * Get documents from a container with optional filters
+ * Get documents from a container with optional filters and ordering
  */
 export const mcp_get_documents = async (args: { 
   container_id: string; 
   limit?: number;
   partition_key?: PartitionKeyValue;
   filter_conditions?: Record<string, any>;
+  order_by?: string;
+  order_direction?: 'ASC' | 'DESC';
 }): Promise<ToolResult<DocumentInfo[]>> => {
-  const { container_id, limit = 100, partition_key, filter_conditions } = args;
+  const { container_id, limit = 100, partition_key, filter_conditions, order_by, order_direction = 'ASC' } = args;
   log(`Executing mcp_get_documents with: ${JSON.stringify(args)}`);
 
   try {
@@ -91,10 +93,16 @@ export const mcp_get_documents = async (args: {
       });
     }
 
-    // Build final query with TOP at the right place
-    let query = `SELECT TOP ${limit} * FROM c`;
+    // Build final query
+    let query = `SELECT * FROM c`;
     if (whereClauses.length > 0) {
       query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+    
+    // Add ORDER BY clause if specified
+    if (order_by) {
+      const direction = order_direction === 'DESC' ? 'DESC' : 'ASC';
+      query += ` ORDER BY c.${order_by} ${direction}`;
     }
 
     const querySpec = { query, parameters };
@@ -106,8 +114,11 @@ export const mcp_get_documents = async (args: {
     }
 
     const { resources: documents } = await container.items.query(querySpec, options).fetchAll();
+    
+    // Apply limit after query (since ORDER BY with TOP can be problematic in CosmosDB)
+    const limitedDocuments = documents.slice(0, limit);
 
-    return { success: true, data: documents };
+    return { success: true, data: limitedDocuments };
   } catch (error: any) {
     log(`Error in mcp_get_documents for container ${container_id}: ${error.message}`);
     return { success: false, error: error.message };

@@ -1,6 +1,6 @@
 {
   "name": "mcpcosmosdb",
-  "version": "1.0.2",
+  "version": "1.2.1",
   "description": "MCP CosmosDB - Azure CosmosDB MCP Server for database analysis and operations",
   "type": "module",
   "main": "dist/server.js",

@@ -1,6 +1,8 @@
 # MCP CosmosDB - Azure CosmosDB MCP Server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm version](https://img.shields.io/npm/v/mcpcosmosdb.svg)](https://www.npmjs.com/package/mcpcosmosdb)
+[![Downloads](https://img.shields.io/npm/dm/mcpcosmosdb.svg)](https://www.npmjs.com/package/mcpcosmosdb)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
 [![GitHub stars](https://img.shields.io/github/stars/hendrickcastro/MCPCosmosDB.svg)](https://github.com/hendrickcastro/MCPCosmosDB/stargazers)
@@ -42,16 +44,16 @@ A comprehensive **Model Context Protocol (MCP)** server for **Azure CosmosDB** d
 
 ### Installation Options
 
-#### Option 1: NPX (Recommended)
+#### Option 1: NPX from npm Registry (Recommended) ✅
 No installation needed! Configure your MCP client:
 
 **Read-Only Mode (Default - Safe):**
 ```json
 {
   "mcpServers": {
-    "mcp-cosmosdb": {
+    "cosmosdb": {
       "command": "npx",
-      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
+      "args": ["-y", "mcpcosmosdb@latest"],
       "env": {
         "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
         "COSMOS_DATABASE_ID": "your-database-name"
@@ -65,13 +67,29 @@ No installation needed! Configure your MCP client:
 ```json
 {
   "mcpServers": {
-    "mcp-cosmosdb": {
+    "cosmosdb": {
       "command": "npx",
-      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
+      "args": ["-y", "mcpcosmosdb@latest"],
       "env": {
         "OCONNSTRING": "AccountEndpoint=https://your-cosmos-account.documents.azure.com:443/;AccountKey=your-account-key-here;",
         "COSMOS_DATABASE_ID": "your-database-name",
         "DB_ALLOW_MODIFICATIONS": "true"
+      }
+    }
+  }
+}
+```
+
+#### Option 2: NPX from GitHub
+```json
+{
+  "mcpServers": {
+    "cosmosdb": {
+      "command": "npx",
+      "args": ["-y", "hendrickcastro/MCPCosmosDB"],
+      "env": {
+        "OCONNSTRING": "AccountEndpoint=https://...;AccountKey=...;",
+        "COSMOS_DATABASE_ID": "your-database-name"
       }
     }
   }
@@ -111,7 +129,7 @@ Then configure with local path:
 | `mcp_list_containers` | List all containers in the current database |
 | `mcp_get_container_definition` | Get detailed container configuration (partition key, indexing policy, throughput) |
 | `mcp_get_container_stats` | Get container statistics (document count, size, partition distribution) |
-| `mcp_execute_query` | Execute SQL queries with parameters and performance metrics |
+| `mcp_cosmos_query` | Execute SQL queries with parameters and performance metrics |
 | `mcp_get_documents` | Retrieve documents with optional filtering |
 | `mcp_get_document_by_id` | Get a specific document by ID and partition key |
 | `mcp_analyze_schema` | Analyze document schema structure in containers |
@@ -149,7 +167,7 @@ const stats = await mcp_get_container_stats({
 ### Querying Data
 ```typescript
 // Execute SQL query with CosmosDB syntax
-const result = await mcp_execute_query({
+const result = await mcp_cosmos_query({
   container_id: "products",
   query: "SELECT * FROM c WHERE c.category = @category AND c.price > @minPrice",
   parameters: { category: "electronics", minPrice: 100 },
